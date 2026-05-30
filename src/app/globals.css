@@ -1,0 +1,44 @@
+@import "tailwindcss";
+
+:root {
+  --background: #020617; 
+  --foreground: #ededed;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden; 
+}
+
+/* ==========================================================================
+   SCROLLBAR GLOBAL PORTFOLIO (VERTICAL ONLY)
+   ========================================================================== */
+
+html {
+  scrollbar-width: thin !important;
+  scrollbar-color: #1e293b #020617 !important;
+}
+
+body::-webkit-scrollbar {
+  width: 10px !important;
+}
+body::-webkit-scrollbar-track {
+  background: #020617 !important;
+}
+body::-webkit-scrollbar-thumb {
+  background: #1e293b !important;
+  border-radius: 100px !important;
+  border: 2px solid #020617 !important;
+}
+body::-webkit-scrollbar-thumb:hover {
+  background: #3b82f6 !important;
+}
