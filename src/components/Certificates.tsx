@@ -33,7 +33,7 @@ const Certificates = ({ data }: CertificatesProps) => {
   // MANAGEMENT STATE JIKA DATA SERTIFIKAT HABIS / KOSONG DI DATABASE
   if (!data || data.length === 0) {
     return (
-      <section id="certificates" className="py-12 md:py-16 px-6 bg-[#020617] text-center border-t border-slate-900/50">
+      <section id="certificates" className="py-8 md:py-12 px-6 bg-[#020617] text-center border-t border-slate-900/50">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-4xl font-bold text-white mb-4 tracking-tighter">
             Penghargaan & <span className="text-blue-500">Sertifikasi</span>
@@ -47,13 +47,13 @@ const Certificates = ({ data }: CertificatesProps) => {
   }
 
   return (
-    <section id="certificates" className="relative py-12 md:py-16 px-6 bg-[#020617] overflow-hidden">
+    <section id="certificates" className="relative py-8 md:py-12 px-6 bg-[#020617] overflow-hidden">
       {/* Glow Effect Background */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-5xl mx-auto relative z-10">
         {/* Header */}
-        <div className="text-center mb-16">
+        <div className="text-center mb-10">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tighter">
             Penghargaan & <span className="text-blue-500">Sertifikasi</span>
           </h2>
@@ -133,7 +133,7 @@ const Certificates = ({ data }: CertificatesProps) => {
         </div>
 
         {/* Info Footer */}
-        <div className="mt-16 text-center">
+        <div className="mt-10 text-center">
           <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
             <ShieldCheck className="text-blue-500" size={20} />
             <p className="text-slate-400 text-sm">

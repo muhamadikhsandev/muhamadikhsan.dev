@@ -90,13 +90,13 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="relative py-12 md:py-16 px-4 sm:px-6 bg-[#020617] overflow-hidden">
+    <section id="contact" className="relative py-8 md:py-12 px-4 sm:px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 blur-[80px] md:blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-12 md:mb-16">
+        <div className="text-center mb-8 md:mb-10">
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4 tracking-tight">
             Hubungi <span className="text-blue-500">Saya</span>
           </h2>

@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { Download, User, Briefcase, Code2 } from 'lucide-react';
+import PriorityImage from './PriorityImage';
 
 interface AboutData {
   name: string;
@@ -43,7 +44,7 @@ const About = ({ data, projectsCount }: AboutProps) => {
   const displayTotalProjects = projectsCount !== undefined ? projectsCount : (aboutContent.total_projects || 0);
 
   return (
-    <section id="about" className="relative py-12 md:py-16 px-6 bg-[#020617] overflow-hidden">
+    <section id="about" className="relative py-8 md:py-12 px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-cyan-600/5 blur-[80px] md:blur-[100px] rounded-full pointer-events-none" />
@@ -60,9 +61,11 @@ const About = ({ data, projectsCount }: AboutProps) => {
             <div className="absolute -inset-1 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-700"></div>
             
             <div className="relative bg-slate-900 aspect-[4/5] md:aspect-square rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
-               <img 
+               <PriorityImage 
                   src={aboutContent.profile_image_url} 
                   alt={`${aboutContent.name} Profile`} 
+                  fill
+                  sizes="(max-width: 768px) 100vw, 448px"
                   className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-active:grayscale-0 group-active:opacity-100 transition-all duration-1000"
                />
                

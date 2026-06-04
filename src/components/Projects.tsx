@@ -48,7 +48,7 @@ const Projects = ({ data }: ProjectsProps) => {
   // JIKA DATA DARI DATABASE BELUM MASUK / KOSONG
   if (!data || data.length === 0) {
     return (
-      <section id="projects" className="py-12 md:py-16 px-6 bg-[#020617] text-center border-t border-slate-900/50">
+      <section id="projects" className="py-8 md:py-12 px-6 bg-[#020617] text-center border-t border-slate-900/50">
         <h2 className="text-2xl font-bold text-white mb-2">Proyek Terpilih</h2>
         <p className="text-slate-500 italic text-sm">
           Tidak ada data proyek dinamis yang ditemukan di database.
@@ -58,14 +58,14 @@ const Projects = ({ data }: ProjectsProps) => {
   }
 
   return (
-    <section id="projects" className="relative py-12 md:py-16 px-6 bg-[#020617] overflow-hidden">
+    <section id="projects" className="relative py-8 md:py-12 px-6 bg-[#020617] overflow-hidden">
       {/* Dekorasi Background Glow */}
       <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-purple-600/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header Section */}
-        <div className="mb-16">
+        <div className="mb-10">
           <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tighter">
             Proyek <span className="text-blue-500 font-extrabold italic">Terpilih</span>
           </h2>
@@ -141,7 +141,7 @@ const Projects = ({ data }: ProjectsProps) => {
         </div>
 
         {/* Footer Proyek */}
-        <div className="mt-16 text-center">
+        <div className="mt-10 text-center">
           <a 
             href="#" 
             className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 border border-slate-800 text-white font-bold rounded-full hover:bg-blue-600 hover:border-blue-600 transition-all group"

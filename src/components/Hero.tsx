@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import PriorityImage from './PriorityImage';
 
 // Deklarasi tipe data props agar aman dan terstruktur
 interface HeroData {
@@ -94,10 +95,12 @@ const Hero = ({ data }: HeroProps) => {
             {/* Wrapper Gambar */}
             <div className="relative w-full h-full overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl">
               {heroContent.images.map((img, index) => (
-                <img
+                <PriorityImage
                   key={index}
                   src={img}
                   alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
+                  fill
+                  sizes="(max-width: 768px) 260px, 380px"
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
                     currentImg === index ? "opacity-100" : "opacity-0"
                   }`}

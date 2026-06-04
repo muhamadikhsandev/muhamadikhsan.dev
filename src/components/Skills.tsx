@@ -126,13 +126,13 @@ const Skills = ({ data }: SkillsProps) => {
     : skillsList.filter(skill => skill.category === activeCategory);
 
   return (
-    <section id="skills" className="relative py-12 md:py-16 px-4 md:px-6 bg-[#020617] overflow-hidden">
+    <section id="skills" className="relative py-8 md:py-12 px-4 md:px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header Section */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 tracking-tighter">
             Keahlian & <span className="text-blue-500">Teknologi</span>
           </h2>
@@ -143,7 +143,7 @@ const Skills = ({ data }: SkillsProps) => {
         </div>
 
         {/* CHIPS FILTER BAR CONTAINER - DRAG TO SCROLL MOUSE EFFECT */}
-        <div className="max-w-6xl mx-auto mb-12 relative">
+        <div className="max-w-6xl mx-auto mb-8 relative">
           
           {/* Scroll Area Utama: Scrollbar asli di-hide total lewat class .kill-all-scrollbar-final.
               Ditambahkan state mouse grab untuk memunculkan efek kursor tangan bisa diseret */}
