@@ -126,7 +126,7 @@ const Skills = ({ data }: SkillsProps) => {
     : skillsList.filter(skill => skill.category === activeCategory);
 
   return (
-    <section id="skills" className="relative py-20 md:py-24 px-4 md:px-6 bg-[#020617] overflow-hidden">
+    <section id="skills" className="relative py-12 md:py-16 px-4 md:px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
 

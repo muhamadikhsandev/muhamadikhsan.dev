@@ -90,7 +90,7 @@ export default function Contact() {
   };
 
   return (
-    <section id="contact" className="relative py-12 md:py-24 px-4 sm:px-6 bg-[#020617] overflow-hidden">
+    <section id="contact" className="relative py-12 md:py-16 px-4 sm:px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/10 blur-[80px] md:blur-[120px] rounded-full pointer-events-none" />
 

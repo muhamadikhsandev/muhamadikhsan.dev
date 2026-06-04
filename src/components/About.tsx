@@ -43,7 +43,7 @@ const About = ({ data, projectsCount }: AboutProps) => {
   const displayTotalProjects = projectsCount !== undefined ? projectsCount : (aboutContent.total_projects || 0);
 
   return (
-    <section id="about" className="relative py-24 px-6 bg-[#020617] overflow-hidden">
+    <section id="about" className="relative py-12 md:py-16 px-6 bg-[#020617] overflow-hidden">
       {/* Background Glow Effect */}
       <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[300px] md:w-[600px] h-[300px] md:h-[600px] bg-blue-600/5 blur-[80px] md:blur-[120px] rounded-full pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-[300px] md:w-[500px] h-[300px] md:h-[500px] bg-cyan-600/5 blur-[80px] md:blur-[100px] rounded-full pointer-events-none" />
