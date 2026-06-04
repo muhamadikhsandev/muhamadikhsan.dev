@@ -491,10 +491,10 @@ export default function AdminPage() {
         <AnimatePresence>
           {notification && (
             <motion.div
-              initial={{ opacity: 0, y: -20, x: '-50%' }}
-              animate={{ opacity: 1, y: 0, x: '-50%' }}
-              exit={{ opacity: 0, y: -20, x: '-50%' }}
-              className={`fixed top-6 left-1/2 transform -translate-x-1/2 z-50 px-5 py-4 rounded-2xl shadow-xl border flex items-center gap-3 text-sm font-semibold max-w-md ${
+              initial={{ opacity: 0, y: -20, x: 20 }}
+              animate={{ opacity: 1, y: 0, x: 0 }}
+              exit={{ opacity: 0, y: -20, x: 20 }}
+              className={`fixed top-6 right-6 z-50 px-5 py-4 rounded-2xl shadow-xl border flex items-center gap-3 text-sm font-semibold max-w-md ${
                 notification.type === 'success' 
                   ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/20' 
                   : 'bg-red-950/90 text-red-400 border-red-500/20'
