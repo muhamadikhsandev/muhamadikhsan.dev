@@ -135,4 +135,4 @@ const Hero = ({ data }: HeroProps) => {
   );
 };
 
-export default Hero;
+export default Hero;

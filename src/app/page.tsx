@@ -7,6 +7,7 @@ import Projects from '@/components/Projects'; // Pastikan nama file fisiknya nan
 import Certificates from '@/components/Certificates';
 import Contact from '@/components/Contact'; 
 import Footer from '@/components/Footer'; 
+import BackToTop from '@/components/BackToTop';
 
 // Import Client Supabase untuk Sisi Server
 import { createClient } from '@/utils/supabase/server';
@@ -66,6 +67,8 @@ const Page = async () => {
       
       {/* Melemparkan data array social_links ke komponen Footer */}
       <Footer data={socialData || []} />
+
+      <BackToTop />
     </main>
   );
 };
