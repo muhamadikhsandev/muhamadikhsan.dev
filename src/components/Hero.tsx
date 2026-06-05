@@ -2,8 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import PriorityImage from './PriorityImage';
 import { Rocket, FolderOpen, Mail } from "lucide-react";
+// FIX: Mengganti 'capture' dengan 'domToPng' dari modern-screenshot
 import { domToPng } from "modern-screenshot";
 
+// Deklarasi tipe data props agar aman dan terstruktur
 interface HeroData {
   title: string;
   highlight_name: string;
@@ -19,6 +21,7 @@ interface HeroProps {
 const Hero = ({ data }: HeroProps) => {
   const [currentImg, setCurrentImg] = useState(0);
 
+  // Gunakan data dari database, berikan fallback nilai default jika data belum masuk/error
   const heroContent = data || {
     title: "Muhamad",
     highlight_name: "Ikhsan",
@@ -33,7 +36,7 @@ const Hero = ({ data }: HeroProps) => {
   const imagesCount = heroContent.images.length;
 
   useEffect(() => {
-    if (imagesCount <= 1) return;
+    if (imagesCount <= 1) return; // Tidak perlu interval kalau gambar cuma 1
 
     const interval = setInterval(() => {
       setCurrentImg((prev) => (prev === imagesCount - 1 ? 0 : prev + 1));
@@ -41,14 +44,16 @@ const Hero = ({ data }: HeroProps) => {
     return () => clearInterval(interval);
   }, [imagesCount]);
 
-  // Capture fungsi yang sudah diperbaiki total
+  // Capture and download image with transparent border
   const handleCapture = async (index: number) => {
-    const element = document.getElementById(`hero-capture-area-${index}`);
+    const element = document.getElementById(`hero-img-${index}`);
     if (!element) return;
     try {
+      // FIX: Menggunakan domToPng untuk mengubah elemen menjadi data URL gambar
       const dataUrl = await domToPng(element, { 
         backgroundColor: "transparent",
-        scale: 3, // Skala ditingkatkan ke 3 agar hasil crop bingkai sangat tajam dan HD
+        // Ditambahkan opsi kualitas/skala jika ingin hasilnya lebih tajam (opsional)
+        scale: 2 
       });
       
       const a = document.createElement('a');
@@ -72,6 +77,7 @@ const Hero = ({ data }: HeroProps) => {
       <div className="container mx-auto px-6 max-w-6xl grid md:grid-cols-2 gap-12 items-center z-10">
         {/* Kolom Teks */}
         <div className="text-left order-2 md:order-1 pt-6 md:pt-0">
+          {/* Badge statis, akan selalu tampil */}
           <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 text-xs font-semibold tracking-widest text-blue-400 uppercase bg-blue-400/10 rounded-full border border-blue-400/20">
             <Rocket size={14} />
             <span>Open to Work</span>
@@ -108,41 +114,33 @@ const Hero = ({ data }: HeroProps) => {
 
         {/* Kolom Foto dengan Transisi Smooth */}
         <div className="relative flex justify-center items-center order-1 md:order-2">
-          
-          {/* FIX AREA: Pembungkus utama untuk di-capture dengan tambahan padding p-4 */}
-          <div 
-            id={`hero-capture-area-${currentImg}`}
-            className="relative p-4 bg-transparent cursor-pointer select-none"
-            onClick={() => handleCapture(currentImg)}
-          >
-            
-            {/* Ukuran box foto dipindahkan ke sini */}
-            <div className="relative w-[260px] h-[320px] md:w-[380px] md:h-[480px]">
-              
-              {/* Dekorasi Bingkai Luar: Posisi diubah dari minus menjadi 0 karena induknya sudah punya p-4 */}
-              {/* Kita hapus -z-10 agar library screenshot mendeteksi border ini dengan jelas */}
-              <div className="absolute bottom-0 left-0 w-16 h-16 border-b-2 border-l-2 border-blue-500/60 rounded-bl-3xl pointer-events-none" />
-              <div className="absolute top-0 right-0 w-16 h-16 border-t-2 border-r-2 border-blue-500/60 rounded-tr-3xl pointer-events-none" />
+          <div className="relative w-[260px] h-[320px] md:w-[380px] md:h-[480px]">
 
-              {/* Wrapper Gambar: Diberi margin/jarak internal agar tidak menabrak bingkai luar */}
-              <div className="absolute inset-4 overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl bg-slate-950">
-                {heroContent.images.map((img, index) => (
-                  <PriorityImage
-                    key={index}
-                    src={img}
-                    alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
-                    fill
-                    sizes="(max-width: 768px) 260px, 380px"
-                    className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${currentImg === index ? "opacity-100" : "opacity-0"}`}
-                  />
-                ))}
-              </div>
-
+            {/* Wrapper Gambar */}
+            <div 
+              className="relative w-full h-full overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl cursor-pointer" 
+              id={`hero-img-${currentImg}`} 
+              onClick={() => handleCapture(currentImg)}
+            >
+              {heroContent.images.map((img, index) => (
+                <PriorityImage
+                  key={index}
+                  src={img}
+                  alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
+                  fill
+                  sizes="(max-width: 768px) 260px, 380px"
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${currentImg === index ? "opacity-100" : "opacity-0"}`}
+                />
+              ))}
             </div>
 
-            {/* Indikator Slider (Ditaruh di luar capture area agar tidak ikut terdownload) */}
+            {/* Dekorasi Bingkai Luar */}
+            <div className="absolute -bottom-4 -left-4 w-16 h-16 border-b-2 border-l-2 border-blue-500/40 rounded-bl-3xl -z-10" />
+            <div className="absolute -top-4 -right-4 w-16 h-16 border-t-2 border-r-2 border-blue-500/40 rounded-tr-3xl -z-10" />
+
+            {/* Indikator Slider */}
             {imagesCount > 1 && (
-              <div className="absolute -bottom-6 left-1/2 -translate-x-1/2 flex gap-3 pointer-events-none">
+              <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-3">
                 {heroContent.images.map((_, i) => (
                   <div
                     key={i}
@@ -151,10 +149,9 @@ const Hero = ({ data }: HeroProps) => {
                 ))}
               </div>
             )}
-
           </div>
-
         </div>
+
       </div>
     </section>
   );
