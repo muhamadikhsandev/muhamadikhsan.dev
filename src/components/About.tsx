@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Download, User, Briefcase, Code2 } from 'lucide-react';
+import { Download, User, Briefcase, Code2, MapPin } from 'lucide-react';
 import PriorityImage from './PriorityImage';
 
 interface AboutData {
@@ -53,20 +53,21 @@ const About = ({ data, projectsCount }: AboutProps) => {
         <div className="grid lg:grid-cols-2 gap-12 lg:gap-20 items-center">
           
           {/* SISI KIRI: FOTO DENGAN EFEK FRAME MODERN */}
-          <div className="relative group active:scale-95 transition-all duration-500 max-w-md mx-auto lg:mx-0">
+          <div className="relative group active:scale-95 transition-all duration-500 w-full max-w-[320px] sm:max-w-[380px] md:max-w-md mx-auto lg:mx-0 mt-6 lg:mt-0 order-2 lg:order-1">
             {/* Dekorasi Bingkai Luar */}
             <div className="absolute -inset-4 border border-slate-800 rounded-[2.5rem] opacity-50 group-hover:border-blue-500/30 transition-colors duration-500"></div>
             
             {/* Efek Gradient di Belakang Foto */}
             <div className="absolute -inset-1 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-700"></div>
             
-            <div className="relative bg-slate-900 aspect-[4/5] md:aspect-square rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
+            {/* Aspek rasio disesuaikan agar tidak kepotong (3/4 untuk portrait mobile, square untuk desktop) */}
+            <div className="relative w-full bg-slate-900 aspect-[3/4] md:aspect-square rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
                <PriorityImage 
                   src={aboutContent.profile_image_url} 
                   alt={`${aboutContent.name} Profile`} 
                   fill
                   sizes="(max-width: 768px) 100vw, 448px"
-                  className="w-full h-full object-cover grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-active:grayscale-0 group-active:opacity-100 transition-all duration-1000"
+                  className="w-full h-full object-cover object-center grayscale opacity-70 group-hover:grayscale-0 group-hover:opacity-100 group-active:grayscale-0 group-active:opacity-100 transition-all duration-1000"
                />
                
                {/* Overlay Subtle Gradient */}
@@ -74,20 +75,26 @@ const About = ({ data, projectsCount }: AboutProps) => {
             </div>
 
             {/* Badge Pengalaman Mengambang */}
-            <div className="hidden md:flex absolute -bottom-6 -right-6 bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl items-center gap-3 animate-bounce-slow">
-              <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500">
-                <Code2 size={20} />
+            <div className="flex absolute -bottom-5 -right-2 sm:-bottom-6 sm:-right-6 bg-slate-900 border border-slate-800 p-3 sm:p-4 rounded-2xl shadow-xl items-center gap-2 sm:gap-3 animate-bounce-slow z-20">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-500 flex-shrink-0">
+                <Code2 size={16} className="sm:w-5 sm:h-5" />
               </div>
               <div>
-                <p className="text-white font-bold leading-none">Fullstack</p>
-                <p className="text-slate-500 text-xs mt-1 tracking-wider uppercase">Developer</p>
+                <p className="text-white font-bold leading-none text-sm sm:text-base whitespace-nowrap">Junior Fullstack</p>
+                <p className="text-slate-500 text-[10px] sm:text-xs mt-1 tracking-wider uppercase">Developer</p>
               </div>
             </div>
           </div>
 
           {/* SISI KANAN: TEKS DESKRIPSI */}
-          <div className="space-y-8">
+          <div className="space-y-8 order-1 lg:order-2">
             <div>
+              {/* Badge Lokasi Style Baru */}
+              <div className="inline-flex items-center gap-2 px-4 py-2 mb-6 bg-blue-500/5 border border-blue-500/10 rounded-full">
+                <MapPin size={14} className="text-blue-400" />
+                <span className="text-blue-400 text-xs md:text-sm font-medium">{aboutContent.location}</span>
+              </div>
+
               <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 flex items-center gap-4 tracking-tighter">
                 <span className="w-12 h-1.5 bg-blue-600 rounded-full"></span>
                 Tentang <span className="text-blue-500">Saya</span>
