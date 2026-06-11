@@ -329,16 +329,7 @@ const Projects = ({ data }: ProjectsProps) => {
           </div>
         )}
 
-        {/* Footer Proyek */}
-        <div className="mt-12 text-center">
-          <a 
-            href="#" 
-            className="inline-flex items-center gap-3 px-8 py-4 bg-slate-900 border border-slate-800 text-white font-bold rounded-full hover:bg-blue-600 hover:border-blue-600 transition-all group"
-          >
-            Lihat Semua Proyek 
-            <span className="group-hover:translate-x-1 transition-transform">→</span>
-          </a>
-        </div>
+  
       </div>
 
       <style jsx>{`
