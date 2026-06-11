@@ -1,13 +1,13 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { ExternalLink, Github, Code2, Layers, Globe, Smartphone, BarChart3, ShieldCheck, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExternalLink, Github, ChevronLeft, ChevronRight, Image as ImageIcon } from 'lucide-react';
 
 interface ProjectItem {
   id?: number;
   title: string;
   description: string;
-  tech_stack: string[];
-  icon_type: string;
+  tech_stack: string[] | string | any; // Flexibel prevent data crash
+  banner_url?: string | null;
   demo_url?: string | null;
   github_url?: string | null;
 }
@@ -20,7 +20,7 @@ const Projects = ({ data }: ProjectsProps) => {
   const [mounted, setMounted] = useState(false);
   const [activeCategory, setActiveCategory] = useState<string>("Semua Proyek");
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5; // Maksimal 5 proyek per halaman
+  const itemsPerPage = 6; // Maksimal 5 proyek per halaman
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [scrollPercent, setScrollPercent] = useState(0);
@@ -29,6 +29,16 @@ const Projects = ({ data }: ProjectsProps) => {
   const [isDown, setIsDown] = useState(false);
   const [startX, setStartX] = useState(0);
   const [scrollLeftState, setScrollLeftState] = useState(0);
+
+  // Normalizer Helper: Memastikan input tech_stack selalu siap di-render sebagai Array murni
+  const safeGetTechStack = (project: ProjectItem): string[] => {
+    if (!project || !project.tech_stack) return [];
+    if (Array.isArray(project.tech_stack)) return project.tech_stack;
+    if (typeof project.tech_stack === 'string') {
+      return project.tech_stack.split(',').map(t => t.trim()).filter(t => t !== "");
+    }
+    return [];
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -73,24 +83,6 @@ const Projects = ({ data }: ProjectsProps) => {
     scrollContainerRef.current.scrollLeft = scrollLeftState - walk;
   };
 
-  const renderIcon = (type: string) => {
-    switch (type?.toLowerCase()) {
-      case 'chart':
-        return <BarChart3 className="text-blue-500" size={28} />;
-      case 'shield':
-        return <ShieldCheck className="text-emerald-500" size={28} />;
-      case 'globe':
-        return <Globe className="text-purple-500" size={28} />;
-      case 'smartphone':
-        return <Smartphone className="text-orange-500" size={28} />;
-      case 'layers':
-        return <Layers className="text-pink-500" size={28} />;
-      case 'code':
-      default:
-        return <Code2 className="text-cyan-500" size={28} />;
-    }
-  };
-
   if (!mounted) return null;
 
   if (!data || data.length === 0) {
@@ -99,14 +91,14 @@ const Projects = ({ data }: ProjectsProps) => {
         <h2 className="text-2xl font-bold text-white mb-2">Proyek Terpilih</h2>
         <p className="text-slate-500 italic text-sm">
           Tidak ada data proyek dinamis yang ditemukan di database.
-          </p>
+        </p>
       </section>
     );
   }
 
-  // Extract unique tech tags from projects list to act as categories
+  // Extract unique tags dengan validasi normalisasi agar aman dari crash CRUD
   const allTechTags = Array.from(
-    new Set(data.flatMap(project => project.tech_stack || []))
+    new Set(data.flatMap(project => safeGetTechStack(project)))
   ).filter(t => t.trim() !== "");
 
   const uniqueCategories = [
@@ -116,12 +108,12 @@ const Projects = ({ data }: ProjectsProps) => {
 
   const getCategoryCount = (category: string) => {
     if (category === "Semua Proyek") return data.length;
-    return data.filter(proj => proj.tech_stack && proj.tech_stack.includes(category)).length;
+    return data.filter(proj => safeGetTechStack(proj).includes(category)).length;
   };
 
   const filteredProjects = activeCategory === "Semua Proyek"
     ? data
-    : data.filter(proj => proj.tech_stack && proj.tech_stack.includes(activeCategory));
+    : data.filter(proj => safeGetTechStack(proj).includes(activeCategory));
 
   // Pagination Logic
   const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
@@ -165,7 +157,7 @@ const Projects = ({ data }: ProjectsProps) => {
                   key={index}
                   onClick={() => {
                     setActiveCategory(category);
-                    setCurrentPage(1); // Reset page on category change
+                    setCurrentPage(1); 
                     localStorage.setItem('portfolio_projects_category', category);
                   }}
                   className={`group flex items-center gap-2.5 whitespace-nowrap px-5 py-2.5 rounded-full text-xs md:text-sm font-semibold tracking-wide transition-all duration-300 border snap-center active:scale-95 pointer-events-auto cursor-pointer ${
@@ -215,69 +207,90 @@ const Projects = ({ data }: ProjectsProps) => {
           </div>
         </div>
 
-        {/* Grid Proyek dengan Stable Min Height untuk Mencegah Layout Jump */}
+        {/* Grid Proyek */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 min-h-[480px] items-start transition-all duration-500">
-          {paginatedProjects.map((project, i) => (
-            <div 
-              key={project.id || i} 
-              className="group relative bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-blue-500/50 hover:bg-slate-900/80 transition-all duration-500 flex flex-col h-full animate-fade-in"
-            >
-              <div className="relative h-52 bg-slate-800/50 flex items-center justify-center overflow-hidden border-b border-slate-800">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                <div className="transform group-hover:scale-110 transition-transform duration-500">
-                  {renderIcon(project.icon_type)}
-                </div>
-                
-                <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-2">
-                  {project.tech_stack && project.tech_stack.map((t, idx) => (
-                    <span key={idx} className="px-3 py-1 bg-slate-950/80 backdrop-blur-md text-slate-300 text-[10px] uppercase tracking-widest font-bold rounded-full border border-slate-800">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-              </div>
+          {paginatedProjects.map((project, i) => {
+            const projectTags = safeGetTechStack(project);
+            const hasBanner = project.banner_url && project.banner_url !== "" && project.banner_url !== "null";
 
-              <div className="p-8 flex-grow flex flex-col justify-between">
-                <div>
-                  <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">
-                    {project.title}
-                  </h3>
-                  <p className="text-slate-400 text-sm leading-relaxed mb-6">
-                    {project.description}
-                  </p>
-                </div>
-                
-                <div className="flex items-center justify-between pt-6 border-t border-slate-800/50 min-h-[52px]">
-                  {project.demo_url && project.demo_url !== "" && project.demo_url !== "null" && project.demo_url !== "#" ? (
-                    <a 
-                      href={project.demo_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-white font-bold text-sm hover:text-blue-400 transition-all cursor-pointer"
-                    >
-                      Detail <ExternalLink size={16} />
-                    </a>
+            return (
+              <div 
+                key={project.id || i} 
+                className="group relative bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-blue-500/50 hover:bg-slate-900/80 transition-all duration-500 flex flex-col h-full animate-fade-in"
+              >
+                {/* MENGGANTI ICON DENGAN TAMPILAN BANNER_URL REAL IMAGE */}
+                <div className="relative h-52 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800">
+                  {hasBanner ? (
+                    <img 
+                      src={project.banner_url!} 
+                      alt={project.title}
+                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
+                      onError={(e) => {
+                        // Safe fallback image jika URL rusak atau broken link
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
                   ) : (
-                    <span className="text-xs text-slate-600 italic">Live demo unavailable</span>
+                    // Default UI Fallback Premium kalau user belum masukin banner_url
+                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col items-center justify-center gap-2 text-slate-600">
+                      <ImageIcon size={32} className="text-slate-700 group-hover:text-blue-500/50 transition-colors" />
+                      <span className="text-xs font-mono">No Project Banner</span>
+                    </div>
                   )}
 
-                  {project.github_url && project.github_url !== "" && project.github_url !== "null" && project.github_url !== "#" ? (
-                    <a 
-                      href={project.github_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-2 bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white rounded-full transition-all cursor-pointer"
-                    >
-                      <Github size={18} />
-                    </a>
-                  ) : null}
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-90" />
+                  
+                  <div className="absolute bottom-4 left-4 right-4 flex flex-wrap gap-1.5">
+                    {projectTags.map((t, idx) => (
+                      <span key={idx} className="px-2.5 py-1 bg-slate-950/90 backdrop-blur-md text-slate-300 text-[9px] uppercase tracking-widest font-bold rounded border border-slate-800/80">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-8 flex-grow flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors">
+                      {project.title}
+                    </h3>
+                    <p className="text-slate-400 text-sm leading-relaxed mb-6 line-clamp-4">
+                      {project.description}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-6 border-t border-slate-800/50 min-h-[52px]">
+                    {project.demo_url && project.demo_url !== "" && project.demo_url !== "null" && project.demo_url !== "#" ? (
+                      <a 
+                        href={project.demo_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-white font-bold text-sm hover:text-blue-400 transition-all cursor-pointer"
+                      >
+                        Live Demo<ExternalLink size={16} />
+                      </a>
+                    ) : (
+                      <span className="text-xs text-slate-600 italic">Live demo unavailable</span>
+                    )}
+
+                    {project.github_url && project.github_url !== "" && project.github_url !== "null" && project.github_url !== "#" ? (
+                      <a 
+                        href={project.github_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 bg-slate-800 hover:bg-blue-600 text-slate-400 hover:text-white rounded-full transition-all cursor-pointer"
+                      >
+                        <Github size={18} />
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Modern Pagination Component (Max 5 items per page) */}
+        {/* Pagination Component */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-2 mt-12">
             <button
