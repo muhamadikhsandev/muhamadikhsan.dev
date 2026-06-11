@@ -1,8 +1,11 @@
 "use client";
 
 import React, { useState } from 'react';
-import { Plus, Edit3, Trash2, RefreshCw, X, Save } from 'lucide-react';
+import { Plus, Edit3, Trash2, X, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
+import CustomDropdown from './CustomDropdown';
+import ConfirmModal from './ConfirmModal';
+import { toast } from 'sonner';
 
 interface ProjectsTabProps {
   projects: any[];
@@ -10,6 +13,15 @@ interface ProjectsTabProps {
   deleteProject: (id: number) => Promise<void>;
   saveProject: (project: any) => Promise<void>;
 }
+
+const PROJECT_ICONS = [
+  { value: 'code', label: 'Code' },
+  { value: 'chart', label: 'Chart' },
+  { value: 'shield', label: 'Shield' },
+  { value: 'globe', label: 'Globe' },
+  { value: 'smartphone', label: 'Smartphone' },
+  { value: 'layers', label: 'Layers' }
+];
 
 export default function ProjectsTab({
   projects,
@@ -20,10 +32,72 @@ export default function ProjectsTab({
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [currentProject, setCurrentProject] = useState<any>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Modal configuration state
+  const [isSaving, setIsSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [modalConfig, setModalConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText: string;
+    confirmColor: string;
+    onConfirm: () => Promise<void>;
+  } | null>(null);
+
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    await saveProject(currentProject);
-    setShowProjectModal(false);
+    setModalConfig({
+      isOpen: true,
+      title: currentProject.id ? "Simpan Perubahan Proyek" : "Tambah Proyek Baru",
+      message: currentProject.id
+        ? "Apakah Anda yakin ingin memperbarui data proyek ini?"
+        : "Apakah Anda yakin ingin menambahkan proyek baru ini?",
+      confirmText: "Ya, Simpan",
+      confirmColor: "bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-900/30",
+      onConfirm: async () => await handleSaveConfirmed()
+    });
+  };
+
+  const handleSaveConfirmed = async () => {
+    setIsSaving(true);
+    setProgress(30);
+    try {
+      await saveProject(currentProject);
+      setProgress(100);
+      await new Promise(r => setTimeout(r, 300));
+      setShowProjectModal(false);
+    } catch (err: any) {
+      toast.error("Gagal menyimpan proyek: " + err.message);
+    } finally {
+      setIsSaving(false);
+      setProgress(0);
+      setModalConfig(null);
+    }
+  };
+
+  const triggerDelete = (id: number) => {
+    setModalConfig({
+      isOpen: true,
+      title: "Hapus Proyek",
+      message: "Apakah Anda yakin ingin menghapus proyek ini? Tindakan ini tidak dapat dibatalkan.",
+      confirmText: "Ya, Hapus",
+      confirmColor: "bg-red-600 hover:bg-red-700 shadow-lg shadow-red-900/30",
+      onConfirm: async () => {
+        setIsSaving(true);
+        setProgress(50);
+        try {
+          await deleteProject(id);
+          setProgress(100);
+          await new Promise(r => setTimeout(r, 200));
+        } catch (err: any) {
+          toast.error("Gagal menghapus: " + err.message);
+        } finally {
+          setIsSaving(false);
+          setProgress(0);
+          setModalConfig(null);
+        }
+      }
+    });
   };
 
   return (
@@ -38,7 +112,7 @@ export default function ProjectsTab({
             setCurrentProject({ title: '', description: '', tech_stack: '', icon_type: 'code', demo_url: '', github_url: '' });
             setShowProjectModal(true);
           }}
-          className="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-5 py-3 rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 self-start"
+          className="bg-blue-600 hover:bg-blue-700 text-white text-xs md:text-sm font-bold px-5 py-3 rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 self-start cursor-pointer"
         >
           <Plus size={16} /> Tambah Proyek
         </button>
@@ -65,18 +139,17 @@ export default function ProjectsTab({
                       });
                       setShowProjectModal(true);
                     }}
-                    className="p-2 bg-slate-900 border border-slate-800 hover:bg-blue-600 hover:border-blue-600 text-slate-400 hover:text-white rounded-xl transition-all"
+                    className="p-2 bg-slate-900 border border-slate-800 hover:bg-blue-600 hover:border-blue-600 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer"
                     title="Edit"
                   >
                     <Edit3 size={14} />
                   </button>
                   <button
-                    onClick={() => deleteProject(proj.id)}
-                    disabled={actionLoading === `delete_project_${proj.id}`}
-                    className="p-2 bg-slate-900 border border-slate-800 hover:bg-red-600 hover:border-red-600 text-slate-400 hover:text-white rounded-xl transition-all disabled:opacity-50"
+                    onClick={() => triggerDelete(proj.id)}
+                    className="p-2 bg-slate-900 border border-slate-800 hover:bg-red-600 hover:border-red-600 text-slate-400 hover:text-white rounded-xl transition-all cursor-pointer"
                     title="Hapus"
                   >
-                    {actionLoading === `delete_project_${proj.id}` ? <RefreshCw className="animate-spin" size={14} /> : <Trash2 size={14} />}
+                    <Trash2 size={14} />
                   </button>
                 </div>
               </div>
@@ -123,7 +196,7 @@ export default function ProjectsTab({
           >
             <button 
               onClick={() => setShowProjectModal(false)}
-              className="absolute right-4 top-4 p-2 text-slate-500 hover:text-white rounded-lg"
+              className="absolute right-4 top-4 p-2 text-slate-500 hover:text-white rounded-lg cursor-pointer"
             >
               <X size={20} />
             </button>
@@ -142,7 +215,7 @@ export default function ProjectsTab({
                   value={currentProject.title || ''}
                   onChange={(e) => setCurrentProject({ ...currentProject, title: e.target.value })}
                   placeholder="Contoh: E-Commerce Dashboard"
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
                 />
               </div>
 
@@ -154,7 +227,7 @@ export default function ProjectsTab({
                   value={currentProject.description || ''}
                   onChange={(e) => setCurrentProject({ ...currentProject, description: e.target.value })}
                   placeholder="Ceritakan tentang proyek ini..."
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all resize-none"
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all resize-none hover:bg-slate-950/80"
                 />
               </div>
 
@@ -166,27 +239,16 @@ export default function ProjectsTab({
                   value={currentProject.tech_stack || ''}
                   onChange={(e) => setCurrentProject({ ...currentProject, tech_stack: e.target.value })}
                   placeholder="Contoh: React, Supabase, Tailwind, TypeScript"
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Tipe Ikon Proyek</label>
-                  <select
-                    value={currentProject.icon_type || 'code'}
-                    onChange={(e) => setCurrentProject({ ...currentProject, icon_type: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
-                  >
-                    <option value="code">Code</option>
-                    <option value="chart">Chart</option>
-                    <option value="shield">Shield</option>
-                    <option value="globe">Globe</option>
-                    <option value="smartphone">Smartphone</option>
-                    <option value="layers">Layers</option>
-                  </select>
-                </div>
-              </div>
+              <CustomDropdown
+                value={currentProject.icon_type || 'code'}
+                onChange={(val) => setCurrentProject({ ...currentProject, icon_type: val })}
+                options={PROJECT_ICONS}
+                label="Tipe Ikon Proyek"
+              />
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1">
@@ -196,7 +258,7 @@ export default function ProjectsTab({
                     value={currentProject.demo_url || ''}
                     onChange={(e) => setCurrentProject({ ...currentProject, demo_url: e.target.value })}
                     placeholder="https://live-demo.com"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
                   />
                 </div>
                 <div className="space-y-1">
@@ -206,23 +268,39 @@ export default function ProjectsTab({
                     value={currentProject.github_url || ''}
                     onChange={(e) => setCurrentProject({ ...currentProject, github_url: e.target.value })}
                     placeholder="https://github.com/username/repo"
-                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+                    className="w-full bg-slate-950/50 border border-slate-800 rounded-xl py-3 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                disabled={actionLoading === 'project_modal'}
-                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                disabled={actionLoading === 'project_modal' || isSaving}
+                className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-slate-850 disabled:text-slate-500 text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 active:scale-[0.98] cursor-pointer"
               >
-                {actionLoading === 'project_modal' ? <RefreshCw className="animate-spin" size={16} /> : <Save size={16} />}
+                <Save size={16} />
                 Simpan Proyek
               </button>
             </form>
           </motion.div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={modalConfig?.isOpen || false}
+        onClose={() => setModalConfig(null)}
+        title={modalConfig?.title || ''}
+        message={modalConfig?.message || ''}
+        confirmText={modalConfig?.confirmText || ''}
+        confirmColor={modalConfig?.confirmColor || ''}
+        onConfirm={async () => {
+          if (modalConfig?.onConfirm) {
+            await modalConfig.onConfirm();
+          }
+        }}
+        isSaving={isSaving}
+        progress={progress}
+      />
     </div>
   );
 }

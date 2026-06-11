@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { Download, User, Briefcase, Code2, MapPin } from 'lucide-react';
+import { Download, Award, User, FolderOpen, Code2, MapPin } from 'lucide-react';
 import PriorityImage from './PriorityImage';
 
 interface AboutData {
@@ -10,7 +10,6 @@ interface AboutData {
   description_2: string;
   profile_image_url: string;
   cv_url: string;
-  total_projects: number;
   years_experience: number;
 }
 
@@ -36,12 +35,11 @@ const About = ({ data, projectsCount }: AboutProps) => {
     description_2: "Gairah saya terletak pada persimpangan antara estetika desain yang bersih dan performa kode yang optimal. Saya percaya bahwa teknologi harus memudahkan hidup manusia tanpa mengorbankan keindahan visual.",
     profile_image_url: "https://wknxqscwvlphuwtvbvot.supabase.co/storage/v1/object/public/projects/me-belakang.png",
     cv_url: "/cv-muhamad-ikhsan.pdf",
-    total_projects: 0,
     years_experience: 3
   };
 
-  // Dinamis total mengambil data length dari page.tsx
-  const displayTotalProjects = projectsCount !== undefined ? projectsCount : (aboutContent.total_projects || 0);
+  // Dinamis total mengambil data length dari page.tsx, jika tidak ada tampilkan 0
+  const displayTotalProjects = projectsCount || 0;
 
   return (
     <section id="about" className="relative py-8 md:py-12 px-6 bg-[#020617] overflow-hidden">
@@ -60,7 +58,7 @@ const About = ({ data, projectsCount }: AboutProps) => {
             {/* Efek Gradient di Belakang Foto */}
             <div className="absolute -inset-1 bg-gradient-to-tr from-blue-600 to-cyan-500 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-700"></div>
             
-            {/* Aspek rasio disesuaikan agar tidak kepotong (3/4 untuk portrait mobile, square untuk desktop) */}
+            {/* Aspek rasio disesuaikan agar tidak kepotong */}
             <div className="relative w-full bg-slate-900 aspect-[3/4] md:aspect-square rounded-3xl border border-slate-800 overflow-hidden shadow-2xl">
                <PriorityImage 
                   src={aboutContent.profile_image_url} 
@@ -106,34 +104,61 @@ const About = ({ data, projectsCount }: AboutProps) => {
               </div>
             </div>
 
-            {/* Grid Statistik - Glassmorphism Style */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="group bg-slate-900/40 backdrop-blur-sm p-6 rounded-[2rem] border border-slate-800 transition-all duration-500 hover:border-blue-500/50 hover:bg-slate-900/60 active:scale-95">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 group-hover:scale-110 transition-transform">
-                    <Briefcase size={18} />
+            {/* Grid Statistik - Glassmorphism Style dengan Desain Baru yang Lebih Padat */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Card 1: Proyek */}
+              <div className="group relative overflow-hidden bg-slate-900/40 backdrop-blur-sm p-5 rounded-[1.8rem] border border-slate-800/80 transition-all duration-500 hover:border-blue-500/40 hover:bg-slate-900/70 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] active:scale-[0.98]">
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-all duration-500" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300">
+                      <FolderOpen size={18} />
+                    </div>
+                    <span className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Proyek</span>
                   </div>
-                  <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Proyek</span>
+                  <span className="text-[9px] bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full font-medium border border-emerald-500/10">
+                    Aktif
+                  </span>
                 </div>
-                <div className="text-white font-bold text-3xl flex items-baseline gap-1">
-                  {displayTotalProjects}<span className="text-blue-500 text-xl">+</span>
+                <div className="space-y-1 relative z-10">
+                  <div className="text-white font-bold text-3xl sm:text-4xl flex items-baseline gap-0.5 select-none">
+                    {displayTotalProjects}
+                    <span className="text-blue-500 text-xl font-bold group-hover:translate-x-0.5 transition-transform inline-block">+</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium tracking-wide">
+                    Aplikasi & platform digital rilis
+                  </p>
                 </div>
               </div>
               
-              <div className="group bg-slate-900/40 backdrop-blur-sm p-6 rounded-[2rem] border border-slate-800 transition-all duration-500 hover:border-blue-500/50 hover:bg-slate-900/60 active:scale-95">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="p-2 bg-blue-500/10 rounded-lg text-blue-500 group-hover:scale-110 transition-transform">
-                    <User size={18} />
+              {/* Card 2: Pengalaman */}
+              <div className="group relative overflow-hidden bg-slate-900/40 backdrop-blur-sm p-5 rounded-[1.8rem] border border-slate-800/80 transition-all duration-500 hover:border-blue-500/40 hover:bg-slate-900/70 hover:shadow-[0_0_30px_rgba(59,130,246,0.15)] active:scale-[0.98]">
+                <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-blue-500/5 rounded-full blur-xl pointer-events-none group-hover:bg-blue-500/10 transition-all duration-500" />
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="p-2.5 bg-blue-500/10 rounded-xl text-blue-400 group-hover:scale-110 group-hover:bg-blue-500/20 transition-all duration-300">
+                      <User size={18} />
+                    </div>
+                    <span className="text-slate-400 uppercase tracking-widest text-[10px] font-bold">Pengalaman</span>
                   </div>
-                  <span className="text-slate-500 uppercase tracking-widest text-[10px] font-bold">Pengalaman</span>
+                  <span className="text-[9px] bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full font-medium border border-blue-500/10">
+                    Profesional
+                  </span>
                 </div>
-                <div className="text-white font-bold text-3xl flex items-baseline gap-1">
-                  {aboutContent.years_experience}<span className="text-blue-500 text-xl">+</span><span className="text-xs text-slate-500 font-normal ml-1">Tahun</span>
+                <div className="space-y-1 relative z-10">
+                  <div className="text-white font-bold text-3xl sm:text-4xl flex items-baseline gap-0.5 select-none">
+                    {aboutContent?.years_experience || 0}
+                    <span className="text-blue-500 text-xl font-bold group-hover:translate-x-0.5 transition-transform inline-block">+</span>
+                    <span className="text-xs text-slate-400 font-semibold ml-1.5 tracking-wide">Tahun</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium tracking-wide">
+                    Handal di tech-stack modern
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* CTA BUTTONS - SEJAJAR KANAN KIRI & PRESISI */}
+            {/* CTA BUTTONS */}
             <div className="grid grid-cols-1 sm:flex sm:items-center gap-4 pt-4 w-full">
               <a 
                 href={aboutContent.cv_url} 
@@ -145,10 +170,11 @@ const About = ({ data, projectsCount }: AboutProps) => {
               </a>
               
               <a 
-                href="#contact"
+                href="#certificates"
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-4 rounded-2xl border border-slate-800 text-slate-300 font-bold hover:bg-white/5 hover:text-white hover:border-slate-700 transition-all active:scale-95 bg-slate-900/20 backdrop-blur-sm"
               >
-                Hubungi Saya
+                <Award className="w-5 h-5 group-hover:animate-bounce transition-transform flex-shrink-0" />
+               <span>Lihat Sertifikat</span> 
               </a>
             </div>
 
@@ -156,7 +182,6 @@ const About = ({ data, projectsCount }: AboutProps) => {
         </div>
       </div>
 
-      {/* Tailwind Custom Animation Style */}
       <style jsx>{`
         @keyframes bounce-slow {
           0%, 100% { transform: translateY(0); }

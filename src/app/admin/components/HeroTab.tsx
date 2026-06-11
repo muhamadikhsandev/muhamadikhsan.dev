@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Save, Plus, Trash2, Image as ImageIcon, Upload, AlertTriangle } from 'lucide-react';
+import { Save, Plus, Trash2, Image as ImageIcon, Upload } from 'lucide-react';
 import { createClient } from '@/utils/supabase/client';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useQueryClient } from '@tanstack/react-query';
+import ConfirmModal from './ConfirmModal';
 
 interface HeroTabProps {
   heroData: any;
@@ -20,12 +21,12 @@ export default function HeroTab({
   actionLoading
 }: HeroTabProps) {
   const supabase = createClient();
+  const queryClient = useQueryClient();
   
   const [pendingFiles, setPendingFiles] = useState<{ [index: number]: File }>({});
   const [deletedUrls, setDeletedUrls] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-  const [progress, setProgress] = useState(0); // State Progress Bar
-  const [isMobile, setIsMobile] = useState(false);
+  const [progress, setProgress] = useState(0); 
   
   const [originalDataString, setOriginalDataString] = useState<string>('');
 
@@ -37,13 +38,6 @@ export default function HeroTab({
     confirmColor: string;
     onConfirm: () => Promise<void>;
   } | null>(null);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 640);
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     if (heroData && Object.keys(heroData).length > 0 && originalDataString === '') {
@@ -86,7 +80,7 @@ export default function HeroTab({
 
   const handleDeleteConfirmed = async (index: number) => {
     setIsSaving(true);
-    setProgress(15); // Start Progress
+    setProgress(15);
     try {
       const updatedImages = [...(heroData.images || [])];
       const targetUrl = updatedImages[index];
@@ -109,7 +103,7 @@ export default function HeroTab({
         setPendingFiles(newPending);
         setHeroData({ ...heroData, images: updatedImages });
         setProgress(100);
-        await new Promise(r => setTimeout(r, 300)); // Animasi smooth sebelum nutup
+        await new Promise(r => setTimeout(r, 300));
         toast.success("Foto berhasil dihapus!");
         return;
       }
@@ -118,7 +112,7 @@ export default function HeroTab({
       const dbPayload = { ...heroData, images: validFinalUrls };
       const { id, created_at, ...payload } = dbPayload;
 
-      setProgress(60); // DB Updating
+      setProgress(60);
 
       const { error: dbError } = await supabase.from('hero_settings').upsert({
         id: id || 1,
@@ -127,7 +121,7 @@ export default function HeroTab({
 
       if (dbError) throw dbError;
 
-      setProgress(85); // Storage Deleting
+      setProgress(85);
 
       if (targetUrl) {
         const parts = targetUrl.split('/Hero/');
@@ -142,7 +136,8 @@ export default function HeroTab({
       setOriginalDataString(JSON.stringify(dbPayload));
       
       setProgress(100);
-      await new Promise(r => setTimeout(r, 300)); // Efek penuh 100%
+      await new Promise(r => setTimeout(r, 300));
+      queryClient.invalidateQueries({ queryKey: ['hero_settings'] });
       toast.success("Foto berhasil dihapus!");
 
     } catch (err: any) {
@@ -197,10 +192,10 @@ export default function HeroTab({
         uploadedUrls[index] = publicUrl;
         
         currentUpload++;
-        setProgress(10 + Math.floor((currentUpload / newFilesCount) * 40)); // Progress 10% - 50%
+        setProgress(10 + Math.floor((currentUpload / newFilesCount) * 40)); 
       }
 
-      setProgress(65); // Mulai simpan DB
+      setProgress(65);
 
       const validFinalUrls = uploadedUrls.filter(url => url && !url.startsWith('blob:'));
       const finalHeroData = { ...heroData, images: validFinalUrls };
@@ -213,7 +208,7 @@ export default function HeroTab({
 
       if (dbError) throw dbError;
 
-      setProgress(85); // Bersihkan sisa storage lama
+      setProgress(85);
 
       if (deletedUrls.length > 0) {
         for (const url of deletedUrls) {
@@ -231,7 +226,9 @@ export default function HeroTab({
       setDeletedUrls([]);
 
       setProgress(100);
-      await new Promise(r => setTimeout(r, 400)); // Smooth exit feeling
+      await new Promise(r => setTimeout(r, 400));
+
+      queryClient.invalidateQueries({ queryKey: ['hero_settings'] });
 
       if (newFilesCount > 0) {
         toast.success(`Pengaturan Hero berhasil disimpan beserta ${newFilesCount} foto baru!`);
@@ -246,13 +243,6 @@ export default function HeroTab({
       setProgress(0);
     }
   };
-
-  const overlayVariants = { hidden: { opacity: 0 }, visible: { opacity: 1 } };
-  const modalVariants = {
-    hidden: { opacity: 0, y: isMobile ? '100%' : '-50%', x: isMobile ? '0%' : '-50%', scale: isMobile ? 1 : 0.95 },
-    visible: { opacity: 1, y: isMobile ? '0%' : '-50%', x: isMobile ? '0%' : '-50%', scale: 1, transition: { type: 'spring', damping: 25, stiffness: 350 } },
-    exit: { opacity: 0, y: isMobile ? '100%' : '-50%', x: isMobile ? '0%' : '-50%', scale: isMobile ? 1 : 0.95, transition: { duration: 0.2 } }
-  } as const;
 
   return (
     <>
@@ -269,7 +259,7 @@ export default function HeroTab({
               type="text"
               value={heroData.title || ''}
               onChange={(e) => setHeroData({ ...heroData, title: e.target.value })}
-              className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
               placeholder="Contoh: Muhamad"
               required
             />
@@ -281,7 +271,7 @@ export default function HeroTab({
               type="text"
               value={heroData.highlight_name || ''}
               onChange={(e) => setHeroData({ ...heroData, highlight_name: e.target.value })}
-              className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+              className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
               placeholder="Contoh: Ikhsan"
               required
             />
@@ -294,7 +284,7 @@ export default function HeroTab({
             type="text"
             value={heroData.subtitle || ''}
             onChange={(e) => setHeroData({ ...heroData, subtitle: e.target.value })}
-            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all"
+            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all hover:bg-slate-950/80"
             placeholder="Contoh: Full Stack Developer & Tech Enthusiast"
             required
           />
@@ -306,7 +296,7 @@ export default function HeroTab({
             rows={4}
             value={heroData.description || ''}
             onChange={(e) => setHeroData({ ...heroData, description: e.target.value })}
-            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all resize-none"
+            className="w-full bg-slate-950/50 border border-slate-800 rounded-2xl py-3.5 px-4 text-white text-sm outline-none focus:border-blue-500/50 transition-all resize-none hover:bg-slate-950/80"
             placeholder="Masukkan deskripsi diri singkat..."
             required
           />
@@ -374,7 +364,7 @@ export default function HeroTab({
                 <button
                   type="button"
                   onClick={() => triggerDeleteModal(idx)}
-                  className="p-3 bg-red-500/10 border border-red-500/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50"
+                  className="p-3 bg-red-500/10 border border-red-500/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl transition-all flex-shrink-0 disabled:opacity-50 active:scale-95 cursor-pointer"
                   title="Hapus"
                   disabled={isSaving || actionLoading === 'hero'}
                 >
@@ -389,7 +379,7 @@ export default function HeroTab({
           <button
             type="submit"
             disabled={actionLoading === 'hero' || isSaving || !isDirty}
-            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold px-8 py-4 rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-blue-900/20 disabled:shadow-none"
+            className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 disabled:bg-slate-800 disabled:text-slate-500 text-white font-bold px-8 py-4 rounded-2xl transition-all flex items-center justify-center gap-2 active:scale-95 shadow-lg shadow-blue-900/20 disabled:shadow-none cursor-pointer"
           >
             <Save size={18} />
             {pendingCount > 0 ? `Simpan Perubahan (${pendingCount} Foto Baru)` : 'Simpan Perubahan Hero'}
@@ -397,79 +387,22 @@ export default function HeroTab({
         </div>
       </form>
 
-      {/* MODAL KONFIRMASI DENGAN PROGRESS BAR */}
-      <AnimatePresence>
-        {modalConfig && modalConfig.isOpen && (
-          <>
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              variants={overlayVariants}
-              onClick={() => !isSaving && setModalConfig(null)}
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 cursor-pointer"
-            />
-            <motion.div
-              initial="hidden"
-              animate="visible"
-              exit="hidden"
-              variants={modalVariants}
-              className={`fixed z-50 bg-slate-900 border border-slate-800 shadow-2xl p-6 w-full max-h-[85vh] overflow-y-auto flex flex-col justify-between
-                ${isMobile ? 'bottom-0 left-0 right-0 rounded-t-[2.5rem] pb-8 pt-6' : 'top-1/2 left-1/2 rounded-[2.5rem] max-w-md border-white/5'}`}
-            >
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-500/10 rounded-2xl flex items-center justify-center text-yellow-500 flex-shrink-0">
-                    <AlertTriangle size={20} />
-                  </div>
-                  <h3 className="text-xl font-bold text-white tracking-tight">
-                    {modalConfig.title}
-                  </h3>
-                </div>
-                <p className="text-sm text-slate-400 leading-relaxed pl-1">
-                  {modalConfig.message}
-                </p>
-              </div>
-
-              <div className="flex gap-3 mt-8">
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={() => setModalConfig(null)}
-                  className="flex-1 py-3.5 px-4 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 font-bold rounded-2xl transition-all text-xs uppercase tracking-wider active:scale-95 disabled:opacity-50"
-                >
-                  Batal
-                </button>
-                
-                {/* TOMBOL KONFIRMASI DENGAN BACKGROUND PROGRESS BAR */}
-                <button
-                  type="button"
-                  disabled={isSaving}
-                  onClick={async () => {
-                    await modalConfig.onConfirm();
-                    setModalConfig(null);
-                  }}
-                  className={`relative overflow-hidden flex-1 py-3.5 px-4 flex justify-center text-white font-bold rounded-2xl transition-all text-xs uppercase tracking-wider active:scale-95 disabled:opacity-90 ${modalConfig.confirmColor}`}
-                >
-                  {/* Latar Progress Bar */}
-                  {isSaving && (
-                    <motion.div
-                      className="absolute left-0 top-0 bottom-0 bg-black/30"
-                      initial={{ width: "0%" }}
-                      animate={{ width: `${progress}%` }}
-                      transition={{ ease: "easeOut", duration: 0.3 }}
-                    />
-                  )}
-                  {/* Teks Status */}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {isSaving ? `Memproses ${progress}%` : modalConfig.confirmText}
-                  </span>
-                </button>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      <ConfirmModal
+        isOpen={modalConfig?.isOpen || false}
+        onClose={() => setModalConfig(null)}
+        title={modalConfig?.title || ''}
+        message={modalConfig?.message || ''}
+        confirmText={modalConfig?.confirmText || ''}
+        confirmColor={modalConfig?.confirmColor || ''}
+        onConfirm={async () => {
+          if (modalConfig?.onConfirm) {
+            await modalConfig.onConfirm();
+          }
+          setModalConfig(null);
+        }}
+        isSaving={isSaving}
+        progress={progress}
+      />
     </>
   );
 }
