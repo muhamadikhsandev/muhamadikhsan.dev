@@ -48,310 +48,167 @@ function AdminDashboard() {
   const [session, setSession] = useState<any>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authLoading, setAuthLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [authLoading, setAuthLoading] = useState(false);
+  const [authError, setAuthError] = useState(''); // FIX TS Error: Added authError state
 
-  // Layout states
-  const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'skills' | 'projects' | 'certificates' | 'socials' | 'contact'>('hero');
+  // UI Navigation states
+  const [activeTab, setActiveTab] = useState('hero');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Auth Session check
+  // Check current auth session on load
   useEffect(() => {
-    const checkSession = async () => {
+    const getSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
-      setAuthLoading(false);
+      setLoading(false);
     };
 
-    checkSession();
+    getSession();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase.auth]);
 
-  // Fetch queries using React Query
-  const { data: heroData, isLoading: isHeroLoading } = useQuery({
+  // Handle Login authentication
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    setAuthError('');
+    try {
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
+      toast.success('Selamat datang kembali, Admin!');
+    } catch (err: any) {
+      const errMsg = err.message || 'Gagal masuk ke dashboard.';
+      setAuthError(errMsg);
+      toast.error(errMsg);
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  // Handle Logout authentication
+  const handleLogout = async () => {
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      toast.success('Berhasil keluar dari dashboard.');
+      queryClient.clear();
+    } catch (err: any) {
+      toast.error('Gagal keluar.');
+    }
+  };
+
+  // --- REACT QUERY DATA FETCHING ---
+  const { data: heroData, isLoading: heroLoading } = useQuery({
     queryKey: ['hero_settings'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('hero_settings').select('*').maybeSingle();
-      if (error) throw error;
-      return data || { is_available: true, title: "", highlight_name: "", subtitle: "", description: "", images: [] };
+      const { data, error } = await supabase.from('hero_settings').select('*').single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || { title: '', subtitle: '', cv_url: '', img_url: '' };
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  const { data: aboutData, isLoading: isAboutLoading } = useQuery({
+  const { data: aboutData, isLoading: aboutLoading } = useQuery({
     queryKey: ['about_settings'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('about_settings').select('*').maybeSingle();
-      if (error) throw error;
-      return data || { name: "", location: "", description_1: "", description_2: "", profile_image_url: "", cv_url: "", total_projects: 0, years_experience: 0 };
+      const { data, error } = await supabase.from('about_settings').select('*').single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || { title: '', description: '', skills_json: [] };
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  const { data: contactData, isLoading: isContactLoading } = useQuery({
-    queryKey: ['contact_settings'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from('contact_settings').select('*').eq('is_singleton', true).maybeSingle();
-      if (error) throw error;
-      return data || { email: "", location: "", whatsapp_number: "" };
-    },
-    enabled: !!session,
-  });
-
-  const { data: skills = [], isLoading: isSkillsLoading } = useQuery({
+  const { data: skills = [], isLoading: skillsLoading } = useQuery({
     queryKey: ['skills'],
     queryFn: async () => {
       const { data, error } = await supabase.from('skills').select('*').order('id', { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  const { data: projects = [], isLoading: isProjectsLoading } = useQuery({
+  const { data: projects = [], isLoading: projectsLoading } = useQuery({
     queryKey: ['projects'],
     queryFn: async () => {
       const { data, error } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  const { data: certificates = [], isLoading: isCertificatesLoading } = useQuery({
+  const { data: certificates = [], isLoading: certificatesLoading } = useQuery({
     queryKey: ['certificates'],
     queryFn: async () => {
-      const { data, error } = await supabase.from('certificates').select('*').order('issued_date', { ascending: false });
+      const { data, error } = await supabase.from('certificates').select('*').order('created_at', { ascending: false });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  const { data: socialLinks = [], isLoading: isSocialLinksLoading } = useQuery({
+  const { data: socialLinks = [], isLoading: socialsLoading } = useQuery({
     queryKey: ['social_links'],
     queryFn: async () => {
       const { data, error } = await supabase.from('social_links').select('*').order('id', { ascending: true });
       if (error) throw error;
       return data || [];
     },
-    enabled: !!session,
+    enabled: !!session
   });
 
-  // Prefetch all queries when session is active to ensure instant loading on tab switch
-  useEffect(() => {
-    if (session) {
-      queryClient.prefetchQuery({
-        queryKey: ['hero_settings'],
-        queryFn: async () => {
-          const { data } = await supabase.from('hero_settings').select('*').maybeSingle();
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['about_settings'],
-        queryFn: async () => {
-          const { data } = await supabase.from('about_settings').select('*').maybeSingle();
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['contact_settings'],
-        queryFn: async () => {
-          const { data } = await supabase.from('contact_settings').select('*').eq('is_singleton', true).maybeSingle();
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['skills'],
-        queryFn: async () => {
-          const { data } = await supabase.from('skills').select('*').order('id', { ascending: true });
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['projects'],
-        queryFn: async () => {
-          const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false });
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['certificates'],
-        queryFn: async () => {
-          const { data } = await supabase.from('certificates').select('*').order('issued_date', { ascending: false });
-          return data;
-        }
-      });
-      queryClient.prefetchQuery({
-        queryKey: ['social_links'],
-        queryFn: async () => {
-          const { data } = await supabase.from('social_links').select('*').order('id', { ascending: true });
-          return data;
-        }
-      });
-    }
-  }, [session, queryClient]);
+  const { data: contactData, isLoading: contactLoading } = useQuery({
+    queryKey: ['contact_settings'],
+    queryFn: async () => {
+      const { data, error } = await supabase.from('contact_settings').select('*').single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data || { email: '', phone: '', location: '', map_embed_url: '' };
+    },
+    enabled: !!session
+  });
 
-  // Auth Operations
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setAuthLoading(true);
-    setAuthError(null);
-    try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) {
-        setAuthError(error.message);
-        toast.error('Login gagal: ' + error.message);
-      } else {
-        toast.success('Berhasil masuk ke panel admin.');
-      }
-    } catch (err: any) {
-      setAuthError(err.message);
-    } finally {
-      setAuthLoading(false);
-    }
-  };
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    queryClient.clear();
-    toast.success('Berhasil keluar.');
-  };
-
-  // React Query Mutations with Optimistic Updates
+  // --- MUTATIONS (SAVE & DELETE OPERATIONS) ---
   const saveHeroMutation = useMutation({
-    mutationFn: async (updatedData: any) => {
-      const { id, created_at, ...payload } = updatedData;
-      const { error } = await supabase.from('hero_settings').upsert({ id: id || 1, ...payload });
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('hero_settings').upsert({ id: 1, ...payload });
       if (error) throw error;
-      return updatedData;
-    },
-    onMutate: async (updatedData) => {
-      await queryClient.cancelQueries({ queryKey: ['hero_settings'] });
-      const previousData = queryClient.getQueryData(['hero_settings']);
-      queryClient.setQueryData(['hero_settings'], updatedData);
-      return { previousData };
-    },
-    onError: (err, newValues, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['hero_settings'], context.previousData);
-      }
-      toast.error('Gagal menyimpan Hero: ' + err.message);
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['hero_settings'] });
       toast.success('Pengaturan Hero berhasil disimpan!');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['hero_settings'] });
-    }
+    onError: (err: any) => toast.error('Gagal menyimpan: ' + err.message)
   });
 
   const saveAboutMutation = useMutation({
-    mutationFn: async (updatedData: any) => {
-      const { id, created_at, ...payload } = updatedData;
-      const { error } = await supabase.from('about_settings').upsert({ id: id || 1, ...payload });
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('about_settings').upsert({ id: 1, ...payload });
       if (error) throw error;
-      return updatedData;
-    },
-    onMutate: async (updatedData) => {
-      await queryClient.cancelQueries({ queryKey: ['about_settings'] });
-      const previousData = queryClient.getQueryData(['about_settings']);
-      queryClient.setQueryData(['about_settings'], updatedData);
-      return { previousData };
-    },
-    onError: (err, newValues, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['about_settings'], context.previousData);
-      }
-      toast.error('Gagal menyimpan About: ' + err.message);
     },
     onSuccess: () => {
-      toast.success('Pengaturan About berhasil disimpan!');
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['about_settings'] });
-    }
-  });
-
-  const saveContactMutation = useMutation({
-    mutationFn: async (updatedData: any) => {
-      const { error } = await supabase.from('contact_settings').upsert({
-        is_singleton: true,
-        email: updatedData.email,
-        location: updatedData.location,
-        whatsapp_number: updatedData.whatsapp_number
-      });
-      if (error) throw error;
-      return updatedData;
+      toast.success('Pengaturan Tentang Saya berhasil disimpan!');
     },
-    onMutate: async (updatedData) => {
-      await queryClient.cancelQueries({ queryKey: ['contact_settings'] });
-      const previousData = queryClient.getQueryData(['contact_settings']);
-      queryClient.setQueryData(['contact_settings'], updatedData);
-      return { previousData };
-    },
-    onError: (err, newValues, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(['contact_settings'], context.previousData);
-      }
-      toast.error('Gagal menyimpan Kontak: ' + err.message);
-    },
-    onSuccess: () => {
-      toast.success('Pengaturan Kontak berhasil disimpan!');
-    },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['contact_settings'] });
-    }
+    onError: (err: any) => toast.error('Gagal menyimpan: ' + err.message)
   });
 
   const saveSkillMutation = useMutation({
-    mutationFn: async (skill: any) => {
-      if (skill.id) {
-        const { error } = await supabase.from('skills').update({
-          name: skill.name,
-          logo: skill.logo,
-          category: skill.category,
-          desc_text: skill.desc_text
-        }).eq('id', skill.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('skills').insert([skill]);
-        if (error) throw error;
-      }
-    },
-    onMutate: async (newSkill) => {
-      await queryClient.cancelQueries({ queryKey: ['skills'] });
-      const previousSkills = queryClient.getQueryData(['skills']);
-      
-      queryClient.setQueryData(['skills'], (old: any[] | undefined) => {
-        const list = old ? [...old] : [];
-        if (newSkill.id) {
-          return list.map(item => item.id === newSkill.id ? { ...item, ...newSkill } : item);
-        } else {
-          return [...list, { ...newSkill, id: Date.now() }];
-        }
-      });
-      return { previousSkills };
-    },
-    onError: (err, newSkill, context) => {
-      if (context?.previousSkills) {
-        queryClient.setQueryData(['skills'], context.previousSkills);
-      }
-      toast.error('Gagal menyimpan keahlian: ' + err.message);
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('skills').upsert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
-      toast.success('Keahlian berhasil disimpan!');
-    },
-    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['skills'] });
-    }
+      toast.success('Data keahlian berhasil disimpan!');
+    },
+    onError: (err: any) => toast.error('Gagal menyimpan keahlian: ' + err.message)
   });
 
   const deleteSkillMutation = useMutation({
@@ -359,82 +216,23 @@ function AdminDashboard() {
       const { error } = await supabase.from('skills').delete().eq('id', id);
       if (error) throw error;
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['skills'] });
-      const previousSkills = queryClient.getQueryData(['skills']);
-      queryClient.setQueryData(['skills'], (old: any[] | undefined) => {
-        return old ? old.filter(item => item.id !== id) : [];
-      });
-      return { previousSkills };
-    },
-    onError: (err, id, context) => {
-      if (context?.previousSkills) {
-        queryClient.setQueryData(['skills'], context.previousSkills);
-      }
-      toast.error('Gagal menghapus keahlian: ' + err.message);
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['skills'] });
       toast.success('Keahlian berhasil dihapus.');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['skills'] });
-    }
+    onError: (err: any) => toast.error('Gagal menghapus: ' + err.message)
   });
 
   const saveProjectMutation = useMutation({
-    mutationFn: async (project: any) => {
-      let techArray = Array.isArray(project.tech_stack) 
-        ? project.tech_stack 
-        : project.tech_stack.split(',').map((t: string) => t.trim()).filter((t: string) => t !== "");
-
-      const projectPayload = {
-        title: project.title,
-        description: project.description,
-        tech_stack: techArray,
-        icon_type: project.icon_type || 'code',
-        demo_url: project.demo_url || null,
-        github_url: project.github_url || null
-      };
-
-      if (project.id) {
-        const { error } = await supabase.from('projects').update(projectPayload).eq('id', project.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('projects').insert([projectPayload]);
-        if (error) throw error;
-      }
-    },
-    onMutate: async (newProject) => {
-      await queryClient.cancelQueries({ queryKey: ['projects'] });
-      const previousProjects = queryClient.getQueryData(['projects']);
-      queryClient.setQueryData(['projects'], (old: any[] | undefined) => {
-        const list = old ? [...old] : [];
-        const techArray = Array.isArray(newProject.tech_stack) 
-          ? newProject.tech_stack 
-          : newProject.tech_stack.split(',').map((t: string) => t.trim()).filter((t: string) => t !== "");
-
-        const formatted = { ...newProject, tech_stack: techArray };
-
-        if (newProject.id) {
-          return list.map(item => item.id === newProject.id ? { ...item, ...formatted } : item);
-        } else {
-          return [{ ...formatted, id: Date.now(), created_at: new Date().toISOString() }, ...list];
-        }
-      });
-      return { previousProjects };
-    },
-    onError: (err, newProject, context) => {
-      if (context?.previousProjects) {
-        queryClient.setQueryData(['projects'], context.previousProjects);
-      }
-      toast.error('Gagal menyimpan proyek: ' + err.message);
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('projects').upsert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Proyek berhasil disimpan!');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    }
+    onError: (err: any) => toast.error('Gagal menyimpan proyek: ' + err.message)
   });
 
   const deleteProjectMutation = useMutation({
@@ -442,72 +240,23 @@ function AdminDashboard() {
       const { error } = await supabase.from('projects').delete().eq('id', id);
       if (error) throw error;
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['projects'] });
-      const previousProjects = queryClient.getQueryData(['projects']);
-      queryClient.setQueryData(['projects'], (old: any[] | undefined) => {
-        return old ? old.filter(item => item.id !== id) : [];
-      });
-      return { previousProjects };
-    },
-    onError: (err, id, context) => {
-      if (context?.previousProjects) {
-        queryClient.setQueryData(['projects'], context.previousProjects);
-      }
-      toast.error('Gagal menghapus proyek: ' + err.message);
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       toast.success('Proyek berhasil dihapus.');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['projects'] });
-    }
+    onError: (err: any) => toast.error('Gagal menghapus: ' + err.message)
   });
 
   const saveCertificateMutation = useMutation({
-    mutationFn: async (cert: any) => {
-      const certPayload = {
-        title: cert.title,
-        issuer: cert.issuer,
-        issued_date: cert.issued_date || new Date().toISOString().split('T')[0],
-        image_url: cert.image_url,
-        icon_type: cert.icon_type || 'award',
-        verify_url: cert.verify_url || null
-      };
-
-      if (cert.id) {
-        const { error } = await supabase.from('certificates').update(certPayload).eq('id', cert.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('certificates').insert([certPayload]);
-        if (error) throw error;
-      }
-    },
-    onMutate: async (newCert) => {
-      await queryClient.cancelQueries({ queryKey: ['certificates'] });
-      const previousCerts = queryClient.getQueryData(['certificates']);
-      queryClient.setQueryData(['certificates'], (old: any[] | undefined) => {
-        const list = old ? [...old] : [];
-        if (newCert.id) {
-          return list.map(item => item.id === newCert.id ? { ...item, ...newCert } : item);
-        } else {
-          return [{ ...newCert, id: Date.now() }, ...list];
-        }
-      });
-      return { previousCerts };
-    },
-    onError: (err, newCert, context) => {
-      if (context?.previousCerts) {
-        queryClient.setQueryData(['certificates'], context.previousCerts);
-      }
-      toast.error('Gagal menyimpan sertifikat: ' + err.message);
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('certificates').upsert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
       toast.success('Sertifikat berhasil disimpan!');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['certificates'] });
-    }
+    onError: (err: any) => toast.error('Gagal menyimpan sertifikat: ' + err.message)
   });
 
   const deleteCertificateMutation = useMutation({
@@ -515,66 +264,23 @@ function AdminDashboard() {
       const { error } = await supabase.from('certificates').delete().eq('id', id);
       if (error) throw error;
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['certificates'] });
-      const previousCerts = queryClient.getQueryData(['certificates']);
-      queryClient.setQueryData(['certificates'], (old: any[] | undefined) => {
-        return old ? old.filter(item => item.id !== id) : [];
-      });
-      return { previousCerts };
-    },
-    onError: (err, id, context) => {
-      if (context?.previousCerts) {
-        queryClient.setQueryData(['certificates'], context.previousCerts);
-      }
-      toast.error('Gagal menghapus sertifikat: ' + err.message);
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['certificates'] });
       toast.success('Sertifikat berhasil dihapus.');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['certificates'] });
-    }
+    onError: (err: any) => toast.error('Gagal menghapus sertifikat: ' + err.message)
   });
 
   const saveSocialLinkMutation = useMutation({
-    mutationFn: async (link: any) => {
-      if (link.id) {
-        const { error } = await supabase.from('social_links').update({
-          icon_name: link.icon_name,
-          url: link.url
-        }).eq('id', link.id);
-        if (error) throw error;
-      } else {
-        const { error } = await supabase.from('social_links').insert([link]);
-        if (error) throw error;
-      }
-    },
-    onMutate: async (newLink) => {
-      await queryClient.cancelQueries({ queryKey: ['social_links'] });
-      const previousLinks = queryClient.getQueryData(['social_links']);
-      queryClient.setQueryData(['social_links'], (old: any[] | undefined) => {
-        const list = old ? [...old] : [];
-        if (newLink.id) {
-          return list.map(item => item.id === newLink.id ? { ...item, ...newLink } : item);
-        } else {
-          return [...list, { ...newLink, id: Date.now() }];
-        }
-      });
-      return { previousLinks };
-    },
-    onError: (err, newLink, context) => {
-      if (context?.previousLinks) {
-        queryClient.setQueryData(['social_links'], context.previousLinks);
-      }
-      toast.error('Gagal menyimpan tautan sosial: ' + err.message);
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('social_links').upsert(payload);
+      if (error) throw error;
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social_links'] });
       toast.success('Tautan sosial berhasil disimpan!');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['social_links'] });
-    }
+    onError: (err: any) => toast.error('Gagal menyimpan tautan: ' + err.message)
   });
 
   const deleteSocialLinkMutation = useMutation({
@@ -582,343 +288,379 @@ function AdminDashboard() {
       const { error } = await supabase.from('social_links').delete().eq('id', id);
       if (error) throw error;
     },
-    onMutate: async (id) => {
-      await queryClient.cancelQueries({ queryKey: ['social_links'] });
-      const previousLinks = queryClient.getQueryData(['social_links']);
-      queryClient.setQueryData(['social_links'], (old: any[] | undefined) => {
-        return old ? old.filter(item => item.id !== id) : [];
-      });
-      return { previousLinks };
-    },
-    onError: (err, id, context) => {
-      if (context?.previousLinks) {
-        queryClient.setQueryData(['social_links'], context.previousLinks);
-      }
-      toast.error('Gagal menghapus tautan sosial: ' + err.message);
-    },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['social_links'] });
       toast.success('Tautan sosial berhasil dihapus.');
     },
-    onSettled: () => {
-      queryClient.invalidateQueries({ queryKey: ['social_links'] });
-    }
+    onError: (err: any) => toast.error('Gagal menghapus tautan: ' + err.message)
   });
 
-  if (authLoading) {
+  const saveContactMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const { error } = await supabase.from('contact_settings').upsert({ id: 1, ...payload });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['contact_settings'] });
+      toast.success('Pengaturan kontak berhasil diperbarui!');
+    },
+    onError: (err: any) => toast.error('Gagal memperbarui kontak: ' + err.message)
+  });
+
+  // Loading global initialization
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#020617] text-white flex flex-col justify-center items-center">
-        <FormSkeleton />
-        <p className="text-slate-400 font-mono tracking-widest text-xs uppercase animate-pulse mt-4">Menghubungkan Supabase...</p>
+      <div className="h-screen w-screen bg-[#020617] text-white flex flex-col items-center justify-center space-y-6 relative overflow-hidden">
+        {/* Glow Background */}
+        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-blue-900/15 rounded-full blur-[140px] pointer-events-none" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-900/15 rounded-full blur-[140px] pointer-events-none" />
+        
+        <div className="flex flex-col items-center z-10 space-y-5">
+          <span className="text-xl font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase">IKHSAN.DEV</span>
+          
+          {/* Modern Progress Bar */}
+          <div className="w-56 h-1.5 bg-slate-800/80 rounded-full overflow-hidden relative backdrop-blur-sm shadow-inner">
+            <motion.div 
+              className="absolute top-0 left-0 h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.8)]"
+              animate={{ 
+                x: ["-100%", "200%"],
+              }}
+              transition={{ 
+                repeat: Infinity, 
+                duration: 1.5, 
+                ease: "easeInOut" 
+              }}
+              style={{ width: "50%" }}
+            />
+          </div>
+          
+          <p className="text-[10px] font-mono text-slate-400 tracking-widest uppercase animate-pulse">Menginisialisasi Hub...</p>
+        </div>
       </div>
     );
   }
 
-  // Not Logged In -> Render Login Component
+  // Auth Guard View
   if (!session) {
     return (
-      <Login
+      <Login 
         email={email}
         setEmail={setEmail}
         password={password}
         setPassword={setPassword}
-        handleLogin={handleLogin}
         authLoading={authLoading}
-        authError={authError}
+        handleLogin={handleLogin}
+        authError={authError} // Disematkan untuk resolve error Typescript LoginProps
       />
     );
   }
 
-  // Sidebar items
-  const sidebarItems = [
-    { id: 'hero', label: 'Hero', icon: <Home size={18} /> },
-    { id: 'about', label: 'About', icon: <User size={18} /> },
-    { id: 'skills', label: 'Skills', icon: <Code2 size={18} /> },
-    { id: 'projects', label: 'Projects', icon: <Briefcase size={18} /> },
-    { id: 'certificates', label: 'Certificates', icon: <Award size={18} /> },
-    { id: 'socials', label: 'Social Links', icon: <Share2 size={18} /> },
-    { id: 'contact', label: 'Contact Settings', icon: <Phone size={18} /> },
-  ] as const;
+  // Dashboard Tab Configuration Setup
+  const navigationItems = [
+    { id: 'hero', name: 'Hero Banner', icon: Home },
+    { id: 'about', name: 'Tentang Saya', icon: User },
+    { id: 'skills', name: 'Manajemen Skill', icon: Code2 },
+    { id: 'projects', name: 'Daftar Proyek', icon: Briefcase },
+    { id: 'certificates', name: 'Sertifikat', icon: Award },
+    { id: 'socials', name: 'Tautan Sosial', icon: Share2 },
+    { id: 'contact', name: 'Info Kontak', icon: Phone },
+  ];
 
-  // Determine active tab loading state
-  const isTabLoading = 
-    (activeTab === 'hero' && isHeroLoading) ||
-    (activeTab === 'about' && isAboutLoading) ||
-    (activeTab === 'contact' && isContactLoading) ||
-    (activeTab === 'skills' && isSkillsLoading) ||
-    (activeTab === 'projects' && isProjectsLoading) ||
-    (activeTab === 'certificates' && isCertificatesLoading) ||
-    (activeTab === 'socials' && isSocialLinksLoading);
+  const currentTabLoading = 
+    (activeTab === 'hero' && heroLoading) ||
+    (activeTab === 'about' && aboutLoading) ||
+    (activeTab === 'skills' && skillsLoading) ||
+    (activeTab === 'projects' && projectsLoading) ||
+    (activeTab === 'certificates' && certificatesLoading) ||
+    (activeTab === 'socials' && socialsLoading) ||
+    (activeTab === 'contact' && contactLoading);
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col font-sans">
+    <div className="h-screen w-screen overflow-hidden bg-[#020617] text-slate-100 font-sans flex selection:bg-blue-500/30 selection:text-blue-100 relative">
       
-      {/* Top Navbar */}
-      <header className="bg-slate-950/80 backdrop-blur-md border-b border-slate-900 sticky top-0 z-40 w-full">
-        <div className="max-w-7xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {/* Mobile Hamburger menu */}
-            <button
-              onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
-              title="Menu Navigasi"
-            >
-              <MenuIcon size={20} />
-            </button>
+      {/* GLOBAL BACKGROUND GLOW EFFECTS */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute top-[-20%] left-[-10%] w-[60vw] h-[60vw] bg-blue-900/15 rounded-full blur-[140px]" />
+        <div className="absolute bottom-[-20%] right-[-10%] w-[50vw] h-[50vw] bg-indigo-900/15 rounded-full blur-[140px]" />
+      </div>
 
-            <h1 className="text-xl md:text-2xl font-extrabold tracking-tighter">
-              MUHAMAD <span className="text-blue-500 italic">IKHSAN</span>
-            </h1>
-            <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] uppercase font-bold tracking-widest px-2.5 py-1 rounded-full">
-              Admin
-            </span>
+      {/* DESKTOP SIDEBAR NAVIGATION */}
+      <aside className="hidden lg:flex flex-col w-72 bg-slate-950/80 border-r border-slate-800/60 p-6 space-y-8 backdrop-blur-xl h-full flex-shrink-0 z-20 shadow-2xl shadow-black/50">
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <span className="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase">IKHSAN.DEV</span>
+            <span className="text-[10px] font-mono text-blue-400 tracking-widest uppercase mt-1">Control Center v2</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <a 
-              href="/" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white transition-colors bg-slate-900 border border-slate-800 px-3.5 py-2 rounded-xl"
-            >
-              Lihat Website <ExternalLink size={14} />
-            </a>
-
-            <div className="h-6 w-px bg-slate-900 hidden sm:block" />
-
-            <div className="text-right hidden md:block">
-              <p className="text-xs text-slate-400 font-medium">{session.user.email}</p>
-            </div>
-
-            <button 
-              onClick={handleLogout}
-              className="p-2.5 md:px-4 md:py-2.5 bg-red-600/10 border border-red-500/20 hover:bg-red-600 text-red-400 hover:text-white rounded-xl transition-all flex items-center gap-2 text-xs font-bold active:scale-95 cursor-pointer"
-              title="Logout"
-            >
-              <LogOut size={16} />
-              <span className="hidden md:inline">Keluar</span>
-            </button>
-          </div>
+          <a href="/" target="_blank" rel="noreferrer" className="text-slate-500 hover:text-blue-400 transition-colors bg-slate-900/50 p-2 rounded-lg border border-slate-800/50" title="Lihat Website">
+            <ExternalLink size={16} />
+          </a>
         </div>
-      </header>
 
-      {/* Mobile Drawer Slide-over Panel */}
+        <nav className="flex-1 space-y-2 overflow-y-auto custom-scrollbar pr-2">
+          {navigationItems.map((item) => {
+            const IconComponent = item.icon;
+            const isActive = activeTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all duration-300 cursor-pointer relative group ${
+                  isActive 
+                    ? 'text-white bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30 border border-transparent'
+                }`}
+              >
+                <IconComponent size={18} className={isActive ? 'text-blue-400' : 'text-slate-500 group-hover:text-slate-400 transition-colors'} />
+                {item.name}
+                {isActive && (
+                  <motion.div 
+                    layoutId="activeIndicatorDesktop"
+                    className="absolute right-4 w-1.5 h-1.5 bg-blue-400 rounded-full shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                  />
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="border-t border-slate-800/60 pt-5 flex flex-col gap-3">
+          <div className="px-4 py-3 bg-slate-900/50 border border-slate-800/50 rounded-xl flex items-center gap-3 backdrop-blur-sm">
+            <div className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </div>
+            <span className="text-[11px] font-mono text-slate-300 truncate">{session?.user?.email}</span>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center justify-center gap-2.5 px-4 py-3 text-sm font-bold text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/30 rounded-xl transition-all cursor-pointer"
+          >
+            <LogOut size={18} />
+            Keluar Hub
+          </button>
+        </div>
+      </aside>
+
+      {/* RESPONSIVE MOBILE SIDEBAR DRAWERS */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <Dialog open={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} className="relative z-50 lg:hidden">
-            <motion.div
+          <Dialog 
+            static 
+            open={isMobileMenuOpen} 
+            onClose={() => setIsMobileMenuOpen(false)} 
+            className="relative z-50 lg:hidden"
+          >
+            <motion.div 
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm"
+              className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm" 
             />
-            
             <div className="fixed inset-0 flex z-50">
-              <DialogPanel
-                as={motion.div}
-                initial={{ x: '-100%' }}
-                animate={{ x: 0 }}
-                exit={{ x: '-100%' }}
-                transition={{ type: 'spring', damping: 22, stiffness: 220 }}
-                className="relative max-w-xs w-full bg-slate-950 border-r border-slate-900 p-6 flex flex-col justify-between"
-              >
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-lg font-extrabold text-white">Menu Admin</h2>
-                    <button 
-                      onClick={() => setIsMobileMenuOpen(false)}
-                      className="p-2 text-slate-400 hover:text-white bg-slate-900 border border-slate-800 rounded-xl cursor-pointer"
+              <DialogPanel className="w-full max-w-xs">
+                <motion.div
+                  initial={{ x: '-100%' }}
+                  animate={{ x: 0 }}
+                  exit={{ x: '-100%' }}
+                  transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                  className="relative max-w-xs w-full bg-[#020617] border-r border-slate-800 p-6 flex flex-col justify-between h-full shadow-2xl shadow-black"
+                >
+                  <div className="space-y-8 h-full flex flex-col">
+                    <div className="flex items-center justify-between">
+                      <div className="flex flex-col">
+                        <span className="text-base font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase">IKHSAN.DEV</span>
+                        <span className="text-[10px] font-mono text-blue-400 tracking-widest uppercase mt-1">Mobile Control</span>
+                      </div>
+                      <button 
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="p-2 text-slate-400 hover:text-white bg-slate-900/50 rounded-xl border border-slate-800 cursor-pointer transition-colors"
+                      >
+                        <CloseIcon size={20} />
+                      </button>
+                    </div>
+
+                    <nav className="space-y-2 flex-1 overflow-y-auto custom-scrollbar pr-1">
+                      {navigationItems.map((item) => {
+                        const IconComponent = item.icon;
+                        const isActive = activeTab === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setActiveTab(item.id);
+                              setIsMobileMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center gap-3.5 px-4 py-3.5 rounded-xl text-sm font-semibold transition-all cursor-pointer ${
+                              isActive 
+                                ? 'text-white bg-blue-500/10 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]' 
+                                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                            }`}
+                          >
+                            <IconComponent size={18} className={isActive ? 'text-blue-400' : 'text-slate-500'} />
+                            {item.name}
+                          </button>
+                        );
+                      })}
+                    </nav>
+                  </div>
+
+                  <div className="border-t border-slate-800 pt-5 flex flex-col gap-3 mt-4">
+                    <div className="px-4 py-3 bg-slate-900/50 border border-slate-800/50 rounded-xl flex items-center gap-3">
+                      <div className="relative flex h-2.5 w-2.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                      </div>
+                      <span className="text-[11px] font-mono text-slate-300 truncate">{session?.user?.email}</span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center justify-center gap-2.5 px-4 py-3 text-sm font-bold text-red-400 hover:text-red-300 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 hover:border-red-500/30 rounded-xl transition-all cursor-pointer"
                     >
-                      <CloseIcon size={18} />
+                      <LogOut size={18} />
+                      Keluar Hub
                     </button>
                   </div>
-                  
-                  <nav className="flex flex-col gap-1.5">
-                    {sidebarItems.map((item) => {
-                      const isActive = activeTab === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => {
-                            setActiveTab(item.id);
-                            setIsMobileMenuOpen(false);
-                          }}
-                          className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all border cursor-pointer ${
-                            isActive 
-                              ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20'
-                              : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:bg-slate-900/60'
-                          }`}
-                        >
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </nav>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  className="w-full py-3.5 bg-red-600/10 border border-red-500/20 text-red-400 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer hover:bg-red-600 hover:text-white transition-all"
-                >
-                  <LogOut size={16} />
-                  <span>Keluar</span>
-                </button>
+                </motion.div>
               </DialogPanel>
             </div>
           </Dialog>
         )}
       </AnimatePresence>
 
-      {/* Main Content Area */}
-      <div className="flex-grow w-full max-w-7xl mx-auto px-4 md:px-6 py-8 grid lg:grid-cols-4 gap-8 items-start relative">
+      {/* DASHBOARD CONTENT AREA HUB (Scrollable) */}
+      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto custom-scrollbar relative z-10">
         
-        {/* Sidebar Panel (Desktop only) */}
-        <div className="hidden lg:flex lg:col-span-1 bg-slate-900/30 backdrop-blur-sm border border-slate-800 rounded-3xl p-4 flex-col gap-1 sticky top-24 z-20">
-          {sidebarItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab(item.id)}
-                className={`flex items-center gap-3 px-4 py-3 rounded-2xl text-xs md:text-sm font-bold tracking-wide transition-all duration-300 border active:scale-95 cursor-pointer ${
-                  isActive 
-                    ? 'bg-blue-600 border-blue-600 text-white shadow-lg shadow-blue-600/20'
-                    : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:bg-slate-900/60'
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
+        {/* TOP RESPONSIVE MOBILE BAR HEADER */}
+        <header className="lg:hidden h-16 border-b border-slate-800/60 bg-slate-950/80 backdrop-blur-xl px-4 flex items-center justify-between sticky top-0 z-30 shadow-md shadow-black/20 flex-shrink-0">
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="p-2.5 text-slate-400 hover:text-white rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer transition-colors"
+          >
+            <MenuIcon size={20} />
+          </button>
+          <div className="flex flex-col items-center">
+            <span className="text-sm font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-white to-slate-400 uppercase">DASHBOARD</span>
+          </div>
+          <a href="/" target="_blank" rel="noreferrer" className="p-2.5 text-slate-400 hover:text-white rounded-xl bg-slate-900/80 border border-slate-800 cursor-pointer transition-colors">
+            <ExternalLink size={20} />
+          </a>
+        </header>
 
-        {/* Form / Content Workspace Panel */}
-        <div className="col-span-4 lg:col-span-3 w-full">
-          {isTabLoading ? (
-            <div className="bg-slate-900/20 border border-slate-800 rounded-[2.5rem] p-6 md:p-10 backdrop-blur-sm relative">
-              {['hero', 'about', 'contact'].includes(activeTab) ? (
-                <FormSkeleton />
-              ) : (
-                <GridSkeleton count={activeTab === 'skills' ? 6 : 4} />
-              )}
-            </div>
-          ) : (
-            <motion.div
-              key={activeTab}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-slate-900/20 border border-slate-800 rounded-[2.5rem] p-6 md:p-10 backdrop-blur-sm relative overflow-hidden"
-            >
-              
-              {/* TAB 1: HERO SETTINGS */}
-              {activeTab === 'hero' && heroData && (
-                <HeroTab
-                  heroData={heroData}
-                  setHeroData={(newData) => queryClient.setQueryData(['hero_settings'], newData)}
-                  saveHeroSettings={async (e) => {
-                    // Handled inside HeroTab but we can wrap mutation trigger here
-                    e?.preventDefault();
-                  }}
-                  actionLoading={saveHeroMutation.isPending ? 'hero' : null}
-                />
-              )}
+        {/* MAIN SUBCOMPONENT TAB LAYOUT */}
+        {currentTabLoading ? (
+          <main className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl w-full mx-auto pb-12">
+            {['hero', 'about', 'contact'].includes(activeTab) ? <FormSkeleton /> : <GridSkeleton />}
+          </main>
+        ) : (
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, ease: "easeOut" }}
+            className="flex-1 p-4 sm:p-6 md:p-8 lg:p-10 max-w-7xl w-full mx-auto pb-12"
+          >
+            
+            {/* TAB 1: HERO VIEW SETTINGS */}
+            {activeTab === 'hero' && heroData && (
+              <HeroTab 
+                heroData={heroData} 
+                setHeroData={(newData) => queryClient.setQueryData(['hero_settings'], newData)}
+                saveHeroSettings={async (e) => {
+                  e?.preventDefault();
+                  await saveHeroMutation.mutateAsync(heroData);
+                }}
+                actionLoading={saveHeroMutation.isPending ? 'hero' : null}
+              />
+            )}
 
-              {/* TAB 2: ABOUT SETTINGS */}
-              {activeTab === 'about' && aboutData && (
-                <AboutTab
-                  aboutData={aboutData}
-                  setAboutData={(newData) => queryClient.setQueryData(['about_settings'], newData)}
-                  saveAboutSettings={async (e) => {
-                    e?.preventDefault();
-                  }}
-                  actionLoading={saveAboutMutation.isPending ? 'about' : null}
-                />
-              )}
+            {/* TAB 2: ABOUT CONTENT SETTINGS */}
+            {activeTab === 'about' && aboutData && (
+              <AboutTab
+                aboutData={aboutData}
+                setAboutData={(newData) => queryClient.setQueryData(['about_settings'], newData)}
+                saveAboutSettings={async (e) => {
+                  e?.preventDefault();
+                  await saveAboutMutation.mutateAsync(aboutData);
+                }}
+                actionLoading={saveAboutMutation.isPending ? 'about' : null}
+              />
+            )}
 
-              {/* TAB 3: SKILLS MANAGEMENT */}
-              {activeTab === 'skills' && (
-                <SkillsTab
-                  skills={skills}
-                  actionLoading={saveSkillMutation.isPending ? 'skill_modal' : null}
-                  deleteSkill={async (id) => {
-                    await deleteSkillMutation.mutateAsync(id);
-                  }}
-                  saveSkill={async (skill) => {
-                    await saveSkillMutation.mutateAsync(skill);
-                  }}
-                />
-              )}
+            {/* TAB 3: SKILLS MANAGEMENT LIST */}
+            {activeTab === 'skills' && (
+              <SkillsTab
+                skills={skills}
+                actionLoading={saveSkillMutation.isPending ? 'skill_modal' : null}
+                deleteSkill={async (id) => {
+                  await deleteSkillMutation.mutateAsync(id);
+                }}
+                saveSkill={async (skill) => {
+                  await saveSkillMutation.mutateAsync(skill);
+                }}
+              />
+            )}
 
-              {/* TAB 4: PROJECTS MANAGEMENT */}
-              {activeTab === 'projects' && (
-                <ProjectsTab
-                  projects={projects}
-                  actionLoading={saveProjectMutation.isPending ? 'project_modal' : null}
-                  deleteProject={async (id) => {
-                    await deleteProjectMutation.mutateAsync(id);
-                  }}
-                  saveProject={async (project) => {
-                    await saveProjectMutation.mutateAsync(project);
-                  }}
-                />
-              )}
+            {/* TAB 4: PROJECTS PORTFOLIO LIST */}
+            {activeTab === 'projects' && (
+              <ProjectsTab
+                projects={projects}
+                actionLoading={saveProjectMutation.isPending ? 'project_modal' : null}
+                deleteProject={async (id) => {
+                  await deleteProjectMutation.mutateAsync(id);
+                }}
+                saveProject={async (project) => {
+                  await saveProjectMutation.mutateAsync(project);
+                }}
+              />
+            )}
 
-              {/* TAB 5: CERTIFICATES MANAGEMENT */}
-              {activeTab === 'certificates' && (
-                <CertificatesTab
-                  certificates={certificates}
-                  actionLoading={saveCertificateMutation.isPending ? 'cert_modal' : null}
-                  deleteCertificate={async (id) => {
-                    await deleteCertificateMutation.mutateAsync(id);
-                  }}
-                  saveCertificate={async (cert) => {
-                    await saveCertificateMutation.mutateAsync(cert);
-                  }}
-                />
-              )}
+            {/* TAB 5: CERTIFICATES ARCHIVE MANAGEMENT */}
+            {activeTab === 'certificates' && (
+              <CertificatesTab
+                certificates={certificates}
+                actionLoading={saveCertificateMutation.isPending ? 'certificate_modal' : null}
+                deleteCertificate={async (id) => {
+                  await deleteCertificateMutation.mutateAsync(id);
+                }}
+                saveCertificate={async (certificate) => {
+                  await saveCertificateMutation.mutateAsync(certificate);
+                }}
+              />
+            )}
 
-              {/* TAB 6: SOCIAL LINKS MANAGEMENT */}
-              {activeTab === 'socials' && (
-                <SocialsTab
-                  socialLinks={socialLinks}
-                  actionLoading={saveSocialLinkMutation.isPending ? 'social_modal' : null}
-                  deleteSocialLink={async (id) => {
-                    await deleteSocialLinkMutation.mutateAsync(id);
-                  }}
-                  saveSocialLink={async (link) => {
-                    await saveSocialLinkMutation.mutateAsync(link);
-                  }}
-                />
-              )}
+            {/* TAB 6: SOCIAL LINKS MANAGEMENT */}
+            {activeTab === 'socials' && (
+              <SocialsTab
+                socialLinks={socialLinks}
+                actionLoading={saveSocialLinkMutation.isPending ? 'social_modal' : null}
+                deleteSocialLink={async (id) => {
+                  await deleteSocialLinkMutation.mutateAsync(id);
+                }}
+                saveSocialLink={async (link) => {
+                  await saveSocialLinkMutation.mutateAsync(link);
+                }}
+              />
+            )}
 
-              {/* TAB 7: CONTACT SETTINGS */}
-              {activeTab === 'contact' && contactData && (
-                <ContactTab
-                  contactData={contactData}
-                  setContactData={(newData) => queryClient.setQueryData(['contact_settings'], newData)}
-                  saveContactSettings={async (e) => {
-                    e?.preventDefault();
-                    await saveContactMutation.mutateAsync(contactData);
-                  }}
-                  actionLoading={saveContactMutation.isPending ? 'contact' : null}
-                />
-              )}
+            {/* TAB 7: CONTACT SETTINGS */}
+            {activeTab === 'contact' && contactData && (
+              <ContactTab
+                contactData={contactData}
+                setContactData={(newData) => queryClient.setQueryData(['contact_settings'], newData)}
+                saveContactSettings={async (e) => {
+                  e?.preventDefault();
+                  await saveContactMutation.mutateAsync(contactData);
+                }}
+                actionLoading={saveContactMutation.isPending ? 'contact' : null}
+              />
+            )}
 
-            </motion.div>
-          )}
-        </div>
-
+          </motion.div>
+        )}
       </div>
-
-      {/* FOOTER */}
-      <footer className="py-8 bg-slate-950/40 border-t border-slate-900 text-center text-xs text-slate-600">
-        <p>© {new Date().getFullYear()} MUHAMAD IKHSAN | Admin Dashboard Hub</p>
-      </footer>
     </div>
   );
 }
