@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Muhamad Ikhsan | Portfolio",
+  title: "Muhamad Ikhsan |  Portfolio",
   description: "Portfolio resmi Muhamad Ikhsan - Fullstack Web Developer & Counselor. Kumpulan proyek terbaik, keahlian, dan sertifikasi profesional.",
 };
 
