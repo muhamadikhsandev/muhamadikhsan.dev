@@ -1,8 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+// FIX: Kita pakai Image bawaan Next.js untuk optimasi gambar otomatis
 import Image from 'next/image';
 import { Rocket, FolderOpen, Mail } from "lucide-react";
 
+// Deklarasi tipe data props agar aman dan terstruktur
 interface HeroData {
   title: string;
   highlight_name: string;
@@ -18,6 +20,7 @@ interface HeroProps {
 const Hero = ({ data }: HeroProps) => {
   const [currentImg, setCurrentImg] = useState(0);
 
+  // Gunakan data dari database, berikan fallback nilai default jika data belum masuk/error
   const heroContent = data || {
     title: "Muhamad",
     highlight_name: "Ikhsan",
@@ -32,7 +35,7 @@ const Hero = ({ data }: HeroProps) => {
   const imagesCount = heroContent.images.length;
 
   useEffect(() => {
-    if (imagesCount <= 1) return;
+    if (imagesCount <= 1) return; // Tidak perlu interval kalau gambar cuma 1
     const interval = setInterval(() => {
       setCurrentImg((prev) => (prev + 1) % imagesCount);
     }, 5000);
@@ -91,7 +94,7 @@ const Hero = ({ data }: HeroProps) => {
         <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
           <div className="relative w-[280px] h-[360px] sm:w-[320px] sm:h-[420px] rounded-2xl bg-slate-900 border border-slate-800/80 p-3 shadow-2xl backdrop-blur-sm group">
             
-            {/* Area Foto Utama (Clean dari fitur capture) */}
+            {/* Area Foto Utama */}
             <div className="relative w-full h-full rounded-xl overflow-hidden bg-slate-950">
               {heroContent.images.map((img, index) => (
                 <Image
@@ -99,10 +102,10 @@ const Hero = ({ data }: HeroProps) => {
                   src={img}
                   alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
                   fill
-                  priority={index === 0} // Foto pertama langsung muncul instan!
-                  sizes="(max-width: 768px) 280px, 320px"
+                  priority={index === 0} // Foto pertama di-load instan duluan
+                  sizes="(max-width: 768px) 260px, 380px"
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
-                    currentImg === index ? "opacity-100 z-10" : "opacity-0 z-0"
+                    currentImg === index ? "opacity-100" : "opacity-0"
                   }`}
                 />
               ))}
@@ -116,13 +119,11 @@ const Hero = ({ data }: HeroProps) => {
             {imagesCount > 1 && (
               <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-3">
                 {heroContent.images.map((_, i) => (
-                  <button
+                  <div
                     key={i}
-                    onClick={() => setCurrentImg(i)}
-                    className={`h-1.5 rounded-full transition-all duration-700 ${
-                      currentImg === i ? "w-8 bg-blue-500" : "w-2 bg-slate-700 hover:bg-slate-500"
+                    className={`h-1 rounded-full transition-all duration-700 ${
+                      currentImg === i ? "w-6 bg-blue-500" : "w-1.5 bg-slate-700"
                     }`}
-                    aria-label={`Go to slide ${i + 1}`}
                   />
                 ))}
               </div>
