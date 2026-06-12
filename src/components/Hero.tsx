@@ -1,9 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-// FIX: Kita langsung pakai komponen 'Image' bawaan Next.js untuk optimasi gambar otomatis
 import Image from 'next/image';
 import { Rocket, FolderOpen, Mail } from "lucide-react";
-import { domToPng } from "modern-screenshot";
 
 interface HeroData {
   title: string;
@@ -40,27 +38,6 @@ const Hero = ({ data }: HeroProps) => {
     }, 5000);
     return () => clearInterval(interval);
   }, [imagesCount]);
-
-  const handleCapture = async (index: number) => {
-    const cardElement = document.getElementById(`photo-card-${index}`);
-    if (!cardElement) return;
-
-    try {
-      const dataUrl = await domToPng(cardElement, {
-        features: {
-          font: false,
-        },
-        scale: 2,
-      });
-
-      const link = document.createElement("a");
-      link.download = `photo-booth-${index + 1}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (error) {
-      console.error("Gagal mengambil gambar:", error);
-    }
-  };
 
   return (
     <section className="relative min-h-screen pt-28 flex items-center justify-center px-4 overflow-hidden bg-slate-950">
@@ -114,20 +91,16 @@ const Hero = ({ data }: HeroProps) => {
         <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
           <div className="relative w-[280px] h-[360px] sm:w-[320px] sm:h-[420px] rounded-2xl bg-slate-900 border border-slate-800/80 p-3 shadow-2xl backdrop-blur-sm group">
             
-            {/* Area Foto Utama */}
-            <div 
-              className="relative w-full h-full rounded-xl overflow-hidden bg-slate-950 cursor-pointer"
-              id={`photo-card-${currentImg}`} 
-              onClick={() => handleCapture(currentImg)}
-            >
+            {/* Area Foto Utama (Clean dari fitur capture) */}
+            <div className="relative w-full h-full rounded-xl overflow-hidden bg-slate-950">
               {heroContent.images.map((img, index) => (
                 <Image
                   key={index}
                   src={img}
                   alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
                   fill
-                  priority={index === 0} // FIX: Foto pertama wajib diprioritaskan biar langsung muncul instant!
-                  sizes="(max-width: 768px) 280px, 320px" // FIX: Resize otomatis sesuai dimensi box-nya
+                  priority={index === 0} // Foto pertama langsung muncul instan!
+                  sizes="(max-width: 768px) 280px, 320px"
                   className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
                     currentImg === index ? "opacity-100 z-10" : "opacity-0 z-0"
                   }`}
