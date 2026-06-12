@@ -1,11 +1,10 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import PriorityImage from './PriorityImage';
+// FIX: Kita langsung pakai komponen 'Image' bawaan Next.js untuk optimasi gambar otomatis
+import Image from 'next/image';
 import { Rocket, FolderOpen, Mail } from "lucide-react";
-// FIX: Mengganti 'capture' dengan 'domToPng' dari modern-screenshot
 import { domToPng } from "modern-screenshot";
 
-// Deklarasi tipe data props agar aman dan terstruktur
 interface HeroData {
   title: string;
   highlight_name: string;
@@ -21,7 +20,6 @@ interface HeroProps {
 const Hero = ({ data }: HeroProps) => {
   const [currentImg, setCurrentImg] = useState(0);
 
-  // Gunakan data dari database, berikan fallback nilai default jika data belum masuk/error
   const heroContent = data || {
     title: "Muhamad",
     highlight_name: "Ikhsan",
@@ -36,100 +34,103 @@ const Hero = ({ data }: HeroProps) => {
   const imagesCount = heroContent.images.length;
 
   useEffect(() => {
-    if (imagesCount <= 1) return; // Tidak perlu interval kalau gambar cuma 1
-
+    if (imagesCount <= 1) return;
     const interval = setInterval(() => {
-      setCurrentImg((prev) => (prev === imagesCount - 1 ? 0 : prev + 1));
-    }, 6000);
+      setCurrentImg((prev) => (prev + 1) % imagesCount);
+    }, 5000);
     return () => clearInterval(interval);
   }, [imagesCount]);
 
-  // Capture and download image with transparent border
   const handleCapture = async (index: number) => {
-    const element = document.getElementById(`hero-img-${index}`);
-    if (!element) return;
+    const cardElement = document.getElementById(`photo-card-${index}`);
+    if (!cardElement) return;
+
     try {
-      // FIX: Menggunakan domToPng untuk mengubah elemen menjadi data URL gambar
-      const dataUrl = await domToPng(element, { 
-        backgroundColor: "transparent",
-        // Ditambahkan opsi kualitas/skala jika ingin hasilnya lebih tajam (opsional)
-        scale: 2 
+      const dataUrl = await domToPng(cardElement, {
+        features: {
+          font: false,
+        },
+        scale: 2,
       });
-      
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = `hero-${index}.png`;
-      a.click();
-    } catch (e) {
-      console.error('Capture failed', e);
+
+      const link = document.createElement("a");
+      link.download = `photo-booth-${index + 1}.png`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error("Gagal mengambil gambar:", error);
     }
   };
 
   return (
-    <section
-      id="home"
-      className="relative min-h-screen flex items-center bg-[#020617] overflow-hidden pt-32 md:pt-20"
-    >
-      {/* Efek Cahaya Latar Belakang */}
-      <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-blue-600/10 blur-[100px] rounded-full pointer-events-none" />
+    <section className="relative min-h-screen pt-28 flex items-center justify-center px-4 overflow-hidden bg-slate-950">
+      {/* Background Glow Effect */}
+      <div className="absolute top-1/4 left-1/4 -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 translate-x-1/2 translate-y-1/2 w-80 h-80 bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Container utama */}
-      <div className="container mx-auto px-6 max-w-6xl grid md:grid-cols-2 gap-12 items-center z-10">
-        {/* Kolom Teks */}
-        <div className="text-left order-2 md:order-1 pt-6 md:pt-0">
-          {/* Badge statis, akan selalu tampil */}
-          <div className="inline-flex items-center gap-2 px-3 py-1 mb-6 text-xs font-semibold tracking-widest text-blue-400 uppercase bg-blue-400/10 rounded-full border border-blue-400/20">
-            <Rocket size={14} />
-            <span>Open to Work</span>
+      <div className="max-w-6xl w-full grid grid-cols-1 lg:grid-cols-12 gap-12 items-center z-10">
+        
+        {/* Kolom Kiri: Teks & CTA */}
+        <div className="lg:col-span-7 flex flex-col justify-center space-y-6 text-center lg:text-left">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium w-fit mx-auto lg:mx-0">
+            <Rocket className="w-3.5 h-3.5" />
+            <span>Welcome to My Portfolio Website</span>
           </div>
 
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-4 tracking-tighter leading-[1.1]">
-            {heroContent.title} <span className="text-blue-500">{heroContent.highlight_name}</span>
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white tracking-tight leading-none">
+            {heroContent.title}{" "}
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-500">
+              {heroContent.highlight_name}
+            </span>
           </h1>
-          <h2 className="text-xl md:text-2xl font-medium text-slate-300 mb-6">
+
+          <h2 className="text-xl sm:text-2xl font-semibold text-slate-300">
             {heroContent.subtitle}
           </h2>
-          <p className="text-slate-400 max-w-md text-base md:text-lg mb-10 leading-relaxed">
+
+          <p className="text-base sm:text-lg text-slate-400 max-w-xl mx-auto lg:mx-0 leading-relaxed">
             {heroContent.description}
           </p>
 
-          <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 pt-4">
             <a
               href="#projects"
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white px-8 py-4 rounded-xl font-bold transition-all shadow-lg shadow-blue-900/20 hover:-translate-y-1"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-medium hover:opacity-90 transition-all shadow-lg shadow-blue-500/20 active:scale-95"
             >
-              <FolderOpen size={18} />
-              <span>Lihat Proyek</span>
+              <FolderOpen className="w-4 h-4" />
+              <span>Lihat Project</span>
             </a>
-
             <a
               href="#contact"
-              className="inline-flex items-center justify-center gap-2 w-full sm:w-auto bg-transparent border border-slate-700 hover:bg-slate-700 text-white px-8 py-4 rounded-xl font-bold transition-all"
+              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-medium hover:bg-slate-800 hover:text-white transition-all active:scale-95"
             >
-              <Mail size={18} />
+              <Mail className="w-4 h-4" />
               <span>Hubungi Saya</span>
             </a>
           </div>
         </div>
 
-        {/* Kolom Foto dengan Transisi Smooth */}
-        <div className="relative flex justify-center items-center order-1 md:order-2">
-          <div className="relative w-[260px] h-[320px] md:w-[380px] md:h-[480px]">
-
-            {/* Wrapper Gambar */}
+        {/* Kolom Kanan: Slider Foto Profil Instan */}
+        <div className="lg:col-span-5 flex flex-col items-center justify-center relative">
+          <div className="relative w-[280px] h-[360px] sm:w-[320px] sm:h-[420px] rounded-2xl bg-slate-900 border border-slate-800/80 p-3 shadow-2xl backdrop-blur-sm group">
+            
+            {/* Area Foto Utama */}
             <div 
-              className="relative w-full h-full overflow-hidden rounded-[2.5rem] border border-white/10 shadow-2xl cursor-pointer" 
-              id={`hero-img-${currentImg}`} 
+              className="relative w-full h-full rounded-xl overflow-hidden bg-slate-950 cursor-pointer"
+              id={`photo-card-${currentImg}`} 
               onClick={() => handleCapture(currentImg)}
             >
               {heroContent.images.map((img, index) => (
-                <PriorityImage
+                <Image
                   key={index}
                   src={img}
                   alt={`${heroContent.title} ${heroContent.highlight_name} ${index}`}
                   fill
-                  sizes="(max-width: 768px) 260px, 380px"
-                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${currentImg === index ? "opacity-100" : "opacity-0"}`}
+                  priority={index === 0} // FIX: Foto pertama wajib diprioritaskan biar langsung muncul instant!
+                  sizes="(max-width: 768px) 280px, 320px" // FIX: Resize otomatis sesuai dimensi box-nya
+                  className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+                    currentImg === index ? "opacity-100 z-10" : "opacity-0 z-0"
+                  }`}
                 />
               ))}
             </div>
@@ -142,9 +143,13 @@ const Hero = ({ data }: HeroProps) => {
             {imagesCount > 1 && (
               <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 flex gap-3">
                 {heroContent.images.map((_, i) => (
-                  <div
+                  <button
                     key={i}
-                    className={`h-1 rounded-full transition-all duration-700 ${currentImg === i ? "w-10 bg-blue-500" : "w-3 bg-slate-800"}`}
+                    onClick={() => setCurrentImg(i)}
+                    className={`h-1.5 rounded-full transition-all duration-700 ${
+                      currentImg === i ? "w-8 bg-blue-500" : "w-2 bg-slate-700 hover:bg-slate-500"
+                    }`}
+                    aria-label={`Go to slide ${i + 1}`}
                   />
                 ))}
               </div>
