@@ -1,158 +1,222 @@
 "use client";
-import React, { useState, useEffect } from 'react';
-import { Award, ExternalLink, Calendar, ShieldCheck } from 'lucide-react';
 
-interface CertificatesProps {
-  data: any[]; // Dilonggarkan ke any[] agar super fleksibel menerima perubahan CRUD database
+import React, { useState } from 'react';
+import { Award, Calendar, ChevronLeft, ChevronRight, X, ZoomIn } from 'lucide-react';
+
+interface CertificateItem {
+  id?: number;
+  title: string;
+  issuer?: string | null;
+  issued_date?: string | null;
+  image_url?: string | null;
 }
 
+interface CertificatesProps {
+  data: CertificateItem[];
+}
+
+const isValidUrl = (url?: string | null): url is string => (
+  Boolean(url && url !== 'null' && url !== '#')
+);
+
+const formatIssuedDate = (date?: string | null) => {
+  if (!date) return 'Tanggal tidak tersedia';
+
+  const parsedDate = new Date(date);
+  if (Number.isNaN(parsedDate.getTime())) return date;
+
+  return parsedDate.toLocaleDateString('id-ID', {
+    year: 'numeric',
+    month: 'long',
+  });
+};
+
+interface CertificateImageProps {
+  certificate: CertificateItem;
+  onOpen: (certificate: CertificateItem) => void;
+}
+
+const CertificateImage = ({ certificate, onOpen }: CertificateImageProps) => (
+  <div className="relative h-full w-28 shrink-0 overflow-hidden border-r border-slate-800 bg-slate-950 sm:w-36">
+    {isValidUrl(certificate.image_url) ? (
+      <button
+        type="button"
+        onClick={() => onOpen(certificate)}
+        aria-label={`Perbesar sertifikat ${certificate.title}`}
+        className="relative block h-full w-full cursor-zoom-in focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+      >
+        <img
+          src={certificate.image_url}
+          alt={`Sertifikat ${certificate.title}`}
+          loading="lazy"
+          decoding="async"
+          className="h-full w-full object-contain p-1.5 transition-transform duration-500 group-hover:scale-[1.04] sm:p-2"
+        />
+        <span className="absolute bottom-2 left-2 inline-flex items-center justify-center rounded-full border border-white/10 bg-slate-950/85 p-1.5 text-white opacity-90 backdrop-blur-md transition-opacity group-hover:opacity-100" title="Perbesar sertifikat">
+          <ZoomIn size={13} />
+        </span>
+      </button>
+    ) : (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gradient-to-br from-slate-900 to-slate-800 text-slate-700">
+        <Award size={22} className="text-slate-800 transition-colors group-hover:text-blue-500/30" />
+        <span className="text-[10px] font-mono tracking-wider">No Certificate Image</span>
+      </div>
+    )}
+
+  </div>
+);
+
+interface CertificateCardProps {
+  certificate: CertificateItem;
+  onOpen: (certificate: CertificateItem) => void;
+}
+
+const CertificateCard = ({ certificate, onOpen }: CertificateCardProps) => (
+  <article className="group flex min-h-[116px] overflow-hidden rounded-2xl border border-slate-800 bg-slate-900/50 transition-all duration-300 hover:-translate-y-0.5 hover:border-blue-500/50 hover:bg-slate-900/80">
+    <CertificateImage certificate={certificate} onOpen={onOpen} />
+
+    <div className="flex min-w-0 flex-grow flex-col justify-between p-3 sm:p-4">
+      <div>
+        <p className="mb-1 truncate text-[9px] font-bold uppercase tracking-wider text-blue-500">
+          {certificate.issuer || 'Sertifikasi Profesional'}
+        </p>
+        <h3 className="line-clamp-2 text-xs font-bold leading-snug text-white transition-colors group-hover:text-blue-400 sm:text-sm">
+          {certificate.title}
+        </h3>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-2 border-t border-slate-800/70 pt-2">
+        <div className="flex min-w-0 items-center gap-1 text-[9px] text-slate-400 sm:text-[10px]">
+          <Calendar size={12} className="shrink-0 text-blue-500" />
+          <span className="truncate capitalize">{formatIssuedDate(certificate.issued_date)}</span>
+        </div>
+
+        <span className="text-[9px] font-medium text-slate-600 sm:text-[10px]">Sertifikat</span>
+      </div>
+    </div>
+  </article>
+);
+
 const Certificates = ({ data }: CertificatesProps) => {
-  const [mounted, setMounted] = useState(false);
+  const [selectedCertificate, setSelectedCertificate] = useState<CertificateItem | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 6;
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
 
-  if (!mounted) return null;
-
-  // MANAGEMENT STATE JIKA DATA SERTIFIKAT HABIS / KOSONG DI DATABASE
   if (!data || data.length === 0) {
     return (
-      <section id="certificates" className="py-8 md:py-12 px-6 bg-[#020617] text-center border-t border-slate-900">
-        <div className="max-w-4xl mx-auto">
-          <h3 className="text-2xl md:text-3xl font-extrabold text-white mb-2 tracking-tight">Sertifikasi & Penghargaan</h3>
-          <p className="text-slate-400 italic text-sm">Belum ada data sertifikat yang tersedia saat ini.</p>
-        </div>
+      <section id="certificates" className="border-t border-slate-900 bg-[#020617] px-6 py-10 text-center">
+        <h3 className="mb-2 text-2xl font-extrabold tracking-tight text-white">Sertifikasi & Penghargaan</h3>
+        <p className="text-sm italic text-slate-400">Belum ada data sertifikat yang tersedia saat ini.</p>
       </section>
     );
   }
 
+  const totalPages = Math.ceil(data.length / itemsPerPage);
+  const paginatedCertificates = data.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage,
+  );
+
   return (
-    <section id="certificates" className="py-12 md:py-20 px-6 bg-[#020617] border-t border-slate-900/40 relative overflow-hidden">
-      {/* Background Ornamen Gradasi Halus Bawaan Asli */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none" />
-      
-      <div className="max-w-6xl mx-auto relative z-10">
-        
-        {/* Header Section Style Asli */}
-        <div className="mb-10">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4 tracking-tighter">
-            Sertifikasi & <span className="text-blue-500 font-extrabold italic">Penghargaan</span>
-          </h2>
-          <p className="text-slate-400 text-lg max-w-2xl">
-            Bukti kredibilitas akademis, pelatihan teknis, dan pengalaman profesional yang divalidasi secara berkala.
+    <section id="certificates" className="relative overflow-hidden border-t border-slate-900/40 bg-[#020617] px-4 py-12 md:px-6 md:py-16">
+      <div className="pointer-events-none absolute left-1/2 top-1/4 h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-blue-600/5 blur-[120px]" />
+
+      <div className="relative z-10 mx-auto max-w-6xl">
+        <header className="mb-8 md:mb-10">
+          <div className="mb-4 flex items-end justify-between gap-4">
+            <h2 className="text-3xl font-bold tracking-tight text-white md:text-5xl">
+              Sertifikasi & <span className="font-extrabold italic text-blue-500">Penghargaan</span>
+            </h2>
+            <div className="shrink-0 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-[10px] font-semibold text-blue-300 sm:px-4 sm:py-2 sm:text-xs">
+              Total {data.length} sertifikat
+            </div>
+          </div>
+          <div className="mb-5 h-1 w-16 rounded-full bg-blue-600" />
+          <p className="max-w-2xl text-sm leading-relaxed text-slate-400 md:text-lg">
+            Bukti kredibilitas dan pengalaman yang mendukung setiap solusi digital yang saya bangun.
           </p>
+        </header>
+
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+          {paginatedCertificates.map((certificate, index) => (
+            <CertificateCard
+              key={certificate.id ?? `${certificate.title}-${(currentPage - 1) * itemsPerPage + index}`}
+              certificate={certificate}
+              onOpen={setSelectedCertificate}
+            />
+          ))}
         </div>
 
-        {/* Responsive Grid System Layout Grid-3 Asli */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.map((c, index) => {
-            
-            // FIX FORMATTING: Mengubah string tanggal SQL menjadi format teks Bulan & Tahun lokal
-            let formattedDate = "";
-            try {
-              if (c.issued_date) {
-                const dateObj = new Date(c.issued_date);
-                if (!isNaN(dateObj.getTime())) {
-                  formattedDate = dateObj.toLocaleDateString('id-ID', {
-                    year: 'numeric',
-                    month: 'long'
-                  });
-                }
-              }
-            } catch (e) {
-              console.error("Error formatting date:", e);
-              formattedDate = c.issued_date || "";
-            }
+        {totalPages > 1 && (
+          <div className="mt-6 flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => goToPage(Math.max(1, currentPage - 1))}
+              disabled={currentPage === 1}
+              aria-label="Halaman sertifikat sebelumnya"
+              className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-slate-400 transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-30"
+            >
+              <ChevronLeft size={16} />
+            </button>
 
-            return (
-              <div 
-                key={c.id || index}
-                className="bg-slate-900/50 border border-slate-800 rounded-[2rem] overflow-hidden hover:border-blue-500/50 hover:bg-slate-900/80 transition-all duration-500 flex flex-col h-full group"
-              >
-                {/* RENDER BANNER GAMBAR SERTIFIKAT (FLEXIBEL FALLBACK) */}
-                <div className="relative h-48 bg-slate-950 flex items-center justify-center overflow-hidden border-b border-slate-800">
-                  {c.image_url && c.image_url !== "" && c.image_url !== "null" ? (
-                    <img 
-                      src={c.image_url} 
-                      alt={c.title}
-                      className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 opacity-80 group-hover:opacity-100"
-                      loading="lazy"
-                    />
-                  ) : (
-                    // Tampilan default minimalis jika banner belum di-upload agar style card tidak pecah
-                    <div className="absolute inset-0 bg-gradient-to-br from-slate-900 to-slate-800 flex flex-col items-center justify-center gap-2 text-slate-700">
-                      <Award size={28} className="text-slate-800 group-hover:text-blue-500/30 transition-colors" />
-                      <span className="text-[10px] font-mono tracking-wider">No Certificate Image</span>
-                    </div>
-                  )}
-                  
-                  {/* Gradasi hitam transparan bawah banner */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent opacity-80" />
-                  
-                  {/* Badge Verified */}
-                  <div className="absolute top-4 right-4 z-10">
-                    <span className="px-2.5 py-1 bg-slate-950/90 backdrop-blur-md text-slate-300 text-[9px] uppercase tracking-widest font-bold rounded border border-slate-800/80">
-                      Verified
-                    </span>
-                  </div>
-                </div>
+            <span className="rounded-xl border border-blue-500/30 bg-blue-500/10 px-4 py-2 font-mono text-xs font-bold text-blue-400">
+              {currentPage} / {totalPages}
+            </span>
 
-                {/* KONTEN DETAIL CARD - STYLE UTAMA ASLI */}
-                <div className="p-8 flex-grow flex flex-col justify-between">
-                  <div>
-                    {/* Nama Penerbit / Issuer */}
-                    <p className="text-xs text-blue-500 font-mono font-bold tracking-wider mb-2 uppercase">
-                      {c.issuer}
-                    </p>
-                    
-                    {/* Judul Sertifikat */}
-                    <h3 className="text-xl font-bold text-white mb-3 group-hover:text-blue-400 transition-colors duration-300 line-clamp-2 leading-snug">
-                      {c.title}
-                    </h3>
-                  </div>
-                  
-                  {/* BAGIAN BAWAH / FOOTER CARD ASLI */}
-                  <div className="flex items-center justify-between pt-6 border-t border-slate-800/50 min-h-[52px]">
-                    {/* Informasi Tanggal (Hanya Bulan & Tahun) */}
-                    <div className="flex items-center gap-1.5 text-slate-400 font-medium text-xs">
-                      <Calendar size={14} className="text-blue-500" />
-                      <span className="capitalize">{formattedDate}</span>
-                    </div>
+            <button
+              type="button"
+              onClick={() => goToPage(Math.min(totalPages, currentPage + 1))}
+              disabled={currentPage === totalPages}
+              aria-label="Halaman sertifikat berikutnya"
+              className="rounded-xl border border-slate-800 bg-slate-900/70 p-2 text-slate-400 transition-colors hover:text-white disabled:pointer-events-none disabled:opacity-30"
+            >
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
 
-                    {/* Tombol Verifikasi Link */}
-                    <div>
-                      {c.verify_url && c.verify_url !== "" && c.verify_url !== "null" && c.verify_url !== "#" ? (
-                        <a 
-                          href={c.verify_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 text-xs font-bold text-white bg-slate-800 hover:bg-blue-600 px-3 py-1.5 rounded-full transition-all cursor-pointer active:scale-95"
-                        >
-                          Verifikasi <ExternalLink size={12} />
-                        </a>
-                      ) : (
-                        <span className="text-[10px] text-slate-600 italic">No link</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
+      </div>
 
+      {selectedCertificate && isValidUrl(selectedCertificate.image_url) && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm md:p-8"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Preview sertifikat ${selectedCertificate.title}`}
+          onClick={() => setSelectedCertificate(null)}
+        >
+          <div
+            className="relative flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl shadow-black/50"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-center justify-between gap-4 border-b border-slate-800 px-4 py-3 md:px-6">
+              <div className="min-w-0">
+                <p className="truncate text-xs font-bold uppercase tracking-wider text-blue-400">{selectedCertificate.issuer || 'Sertifikasi Profesional'}</p>
+                <h3 className="truncate text-sm font-bold text-white md:text-base">{selectedCertificate.title}</h3>
               </div>
-            );
-          })}
-        </div>
-
-        {/* Info Footer Asli */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 bg-blue-500/5 border border-blue-500/10 rounded-2xl">
-            <ShieldCheck className="text-blue-500" size={20} />
-            <p className="text-slate-400 text-sm">
-              Semua sertifikat dapat diverifikasi keasliannya melalui tautan terkait secara dinamis.
-            </p>
+              <button
+                type="button"
+                onClick={() => setSelectedCertificate(null)}
+                aria-label="Tutup preview sertifikat"
+                className="shrink-0 rounded-full bg-slate-800 p-2 text-slate-300 transition-colors hover:bg-blue-600 hover:text-white"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="flex min-h-0 items-center justify-center overflow-auto bg-slate-950 p-3 md:p-6">
+              <img
+                src={selectedCertificate.image_url}
+                alt={`Preview sertifikat ${selectedCertificate.title}`}
+                className="max-h-[calc(92vh-7rem)] max-w-full object-contain"
+              />
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </section>
   );
 };
